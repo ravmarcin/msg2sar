@@ -1,0 +1,11 @@
+name: msg2sar_env
+channels:
+  - conda-forge
+  - https://repo.anaconda.com/pkgs/main
+  - https://repo.anaconda.com/pkgs/r
+dependencies:
+  - anaconda
+  - python==3.12.2
+  - pip
+  - msgpack-python
+prefix: /home/rav_marcin/anaconda3/envs/msg2sar_env
