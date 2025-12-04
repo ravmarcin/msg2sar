@@ -19,7 +19,11 @@ def init_stack(
     
     if verbose:
         print(f"Initialize S1 Stack with working directory: {work_dir}")
-    sbas = Stack(work_dir, drop_if_exists=drop_if_exists).set_scenes(scenes).set_reference(ref)
+    sbas = Stack(work_dir, drop_if_exists=drop_if_exists)
+    sbas.reference = ref
+    sbas = sbas.set_scenes(scenes)
+    sbas = sbas.set_reference(ref)
+    
 
     if dem is not None:
         if verbose:
