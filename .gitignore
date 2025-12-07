@@ -157,7 +157,7 @@ cython_debug/
 # ------------------------------------------------
 
 # Secrets:
-.keys/
+.secrets/
 
 # Data:
 data/
