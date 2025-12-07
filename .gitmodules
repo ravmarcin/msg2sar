@@ -1,0 +1,3 @@
+[submodule "libs/pygmtsar"]
+	path = libs/pygmtsar
+	url = git@github.com:ravmarcin/pygmtsar.git
