@@ -158,6 +158,7 @@ cython_debug/
 
 # Secrets:
 .secrets/
+.secrets/keys.json
 
 # Data:
 data/
