@@ -94,7 +94,7 @@ AOI_dict = get_aoi(json_path=aois_path, aoi_name=aoi_name)
 AOI = gpd.GeoDataFrame.from_features([AOI_dict])
 
 
-secrets = open_json(join(KEYS_DIR, 'secrets.json'))
+secrets = open_json(join(KEYS_DIR, 'keys.json'))
 
 # Set these variables to None and you will be prompted to enter your username and password below.
 asf = ASF(secrets['asf']['username'], secrets['asf']['password'])
