@@ -238,12 +238,12 @@ dependencies:
       - pyarrow==18.1.0
       - pycparser==2.22
       - pygments==2.18.0
-      - pygmtsar==2024.8.30.post5 (done)
+      - pygmtsar==2024.8.30.post5
       - pyogrio==0.10.0
       - pyparsing==3.2.1
       - pyproj==3.7.0
       - pytz==2024.2
-      - pyvista==0.44.2 (done)
+      - pyvista==0.44.2
       - pyviz-comms==3.0.3
       - rasterio==1.4.3
       - regex==2024.11.6

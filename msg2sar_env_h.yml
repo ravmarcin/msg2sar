@@ -1,4 +1,4 @@
-name: msg2sar_env
+name: msg2sar
 channels:
   - conda-forge
   - https://repo.anaconda.com/pkgs/main
@@ -8,4 +8,3 @@ dependencies:
   - python==3.12.2
   - pip
   - msgpack-python
-prefix: /home/rav_marcin/anaconda3/envs/msg2sar_env
