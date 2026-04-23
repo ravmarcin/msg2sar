@@ -64,6 +64,18 @@
           "WV_062",
           "WV_073"
         ],
+        "temporal_downsampling": {
+            "n_images_window": 10,
+            "batch_size_x": 256,
+            "batch_size_y": 256,
+            "overlap": 32,
+            "translation_steps": [8, 4, 2, 1]
+        },
+        "sar_geometry": {
+            "z_top_m": 12000,
+            "dz_m": 100,
+            "eof_orbit_dir": "orbit_files"
+        },
         "resample": {
           "dtype": "float32",
           "methods": {
