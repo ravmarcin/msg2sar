@@ -1,0 +1,301 @@
+max_distance_baseline_reasoning:
+  paper: 2006ESASP_610E__12C.pdf
+  value: 300
+  desc:
+    - |
+        For SBAS aimed at testing/using meteorological data (e.g., NWM/ERA5/GNSS/meteosat) to correct atmospheric phase screens, a conservative perpendicular baseline threshold around 100–300 m for C‑band missions (e.g., Sentinel‑1) is generally a good starting point, with a hard upper limit no higher than about 500 m for deformation‑focused work.[1][2]
+
+        ## Why a conservative baseline
+
+        - Atmospheric phase is largely independent of baseline, while geometric decorrelation and topographic residuals grow with increasing perpendicular baseline.[2][1]
+        - If the goal is to isolate and quantify the benefit of meteo-based atmospheric corrections, it is preferable that loss of coherence and residual DEM errors do not dominate the interferometric phase; smaller baselines keep those contributions smaller and more stable.[1][2]
+
+        ## Balancing baseline and sensitivity
+
+        - Some baseline diversity is still useful because it helps separate topography from deformation in the SBAS inversion and can improve network robustness, so baselines that are “too small” everywhere can reduce sensitivity to height errors.[3][2]
+        - A practical strategy is to aim for a network where most interferograms fall in the 100–300 m range, allow occasional pairs up to ~500 m to improve geometry, and discard very long baselines where coherence degrades significantly in your area of interest.[2][3][1]
+
+        ## Adapting to your study
+
+        - In vegetated or otherwise decorrelation‑prone regions, staying near the lower end (≈100–200 m) will likely give cleaner phase for testing meteo corrections; in arid or urban areas, you can push closer to 300–500 m without severe coherence loss.[4][2]
+        - For a methodology paper, it can also be useful to run two SBAS chains: one “strict” (e.g., ≤200 m) and one “relaxed” (e.g., ≤500 m) and discuss how the apparent performance of the meteo corrections changes with baseline regime.[3][2]
+
+        [1](https://hyp3-docs.asf.alaska.edu/guides/insar_product_guide/)
+        [2](https://www.sciencedirect.com/science/article/pii/S1674984721000860)
+        [3](http://adsabs.harvard.edu/full/2006ESASP.610E..12C)
+        [4](https://isprs-archives.copernicus.org/articles/XLII-3-W10/315/2020/isprs-archives-XLII-3-W10-315-2020.pdf)
+
+sbas_temporal_baseline_limit_reasoning:
+  paper: sensors-24-04783.pdf
+  value: 60
+  desc:
+    - |
+        For SBAS, images are usually spaced as closely as the satellite repeat cycle allows (e.g., 6–12 days for Sentinel‑1), but the interferogram network uses a maximum temporal baseline on the order of a few months, tuned to land cover and the process you want to observe.[1][2]
+    
+        ## Typical temporal spacing
+        
+        - SBAS is built from “short temporal baseline” interferograms to reduce temporal decorrelation, so adjacent acquisitions are used whenever possible (e.g., 6 or 12 days for Sentinel‑1, 11 days for TerraSAR‑X, 46 days for Envisat).[2][3][4]
+        - In practice, scenes over several years are included, but each interferometric pair is constrained by a maximum temporal baseline: many studies with Sentinel‑1 use limits of about 90–120 days for decorrelation‑prone surfaces, and sometimes up to ~3–4 months where coherence is more stable.[4][5][1]
+        
+        ## Choosing a max temporal baseline
+        
+        - If your area has vegetation, snow, or strong seasonal changes, a stricter maximum temporal baseline (≈60–90 days) helps keep coherence high and makes it easier to see the improvement from meteorological corrections.[1][4]
+        - In arid, rocky, or urban regions, you can allow longer temporal baselines (≈120–180 days) to increase network connectivity, but should still exclude pairs whose coherence drops significantly in test interferograms.[6][5][1]
+        
+        ## For meteo‑correction research
+        
+        - To evaluate atmospheric corrections from meteorological or satellite data, it helps to work with dense time sampling: use nearly all consecutive acquisitions, enforce a moderate max temporal baseline (e.g., 90–120 days), and then compare results when including vs excluding the longest temporal pairs.[5][2][1]
+        - This configuration gives enough temporal diversity to resolve deformation while keeping temporal decorrelation controlled, so changes in performance can be more confidently attributed to the quality of the atmospheric correction rather than loss of coherence.[4][5][1]
+        
+        [1](https://pmc.ncbi.nlm.nih.gov/articles/PMC11314970/)
+        [2](https://www.sarmap.ch/tutorials/SBAS_Tutorial_562.pdf)
+        [3](https://hyp3-docs.asf.alaska.edu/guides/insar_product_guide/)
+        [4](https://tc.copernicus.org/preprints/tc-2019-262/tc-2019-262.pdf)
+        [5](https://ieeexplore.ieee.org/document/9554071/)
+        [6](https://pmc.ncbi.nlm.nih.gov/articles/PMC6164590/)
+        [7](https://pmc.ncbi.nlm.nih.gov/articles/PMC6540355/)
+        [8](https://earthconsole.eu/portfolio-item/small-baseline-subset-sbas-insar-beta-for-sentinel-1/)
+        [9](https://earthconsole.eu/portfolio-item/sbas-insar-beta/)
+        [10](https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2021JB022825)
+
+sbas_spatial_wavelenght_reasoning:
+  paper: sensors-24-04783.pdf
+  value: 200
+  desc:
+    - |
+        The specific numeric recommendation (e.g., “5–10 pixels”) came from general sampling and filtering principles in InSAR/SBAS, not from a single paper that states exactly that number. However, it is consistent with how studies control spatial resolution and noise through multilooking and filtering.
+
+        ## What the literature supports
+
+        - SBAS and related time‑series methods routinely trade spatial detail for phase quality by multilooking and applying low‑pass filters; typical products have effective resolutions on the order of several pixels of the original SLC, which corresponds to smoothing over hundreds of meters for missions like Sentinel‑1.[3][4]
+        - Reviews and applications of SBAS emphasize that long‑wavelength deformation (regional subsidence, broad uplift) is well preserved under such smoothing, while small, localized signals are attenuated; this is considered acceptable or even desirable when the scientific focus is on large‑scale trends rather than fine structures.[4][8]
+
+        ## How this leads to the “5–10 pixels” guideline
+
+        - Nyquist sampling theory and standard image‑processing practice suggest that, to avoid aliasing, one should low‑pass filter so that the smallest retained wavelength spans multiple pixels; in many remote‑sensing and InSAR implementations, features narrower than a few pixels are treated as noise or filtered out by multilooking and phase filtering.[10][11]
+        - Given that you explicitly do not care about small‑scale deformation, adopting a cutoff that suppresses fringes finer than roughly 5–10 pixels is a reasonable, theory‑consistent engineering choice: it keeps only medium‑ and large‑scale signals, improves coherence, and reduces noise, in line with the way SBAS studies tune their look factors and filters when focusing on broad deformation patterns.[8][12][4]
+
+        So the number itself is a practical design choice grounded in standard sampling and filtering theory plus the documented tendency in SBAS work to smooth to scales of several pixels when prioritizing large‑scale deformation over fine spatial detail.[4][8][10]
+
+        [1](https://feng.stafpu.bu.edu.eg/Surveying%20Engineering/4251/publications/Reda%20Fekry%20Abdlekawy%20KHALIEL_remotesensing-16-01520-v2%20(1).pdf)
+        [2](https://www.eoportal.org/ftp/satellite-missions/s/SBAS-17032021/SBAS.html)
+        [3](https://isprs-archives.copernicus.org/articles/XLVIII-M-6-2025/259/2025/isprs-archives-XLVIII-M-6-2025-259-2025.pdf)
+        [4](https://www.sciencedirect.com/science/article/pii/S1674984721000860)
+        [5](http://web.stanford.edu/group/scpnt/gpslab/website_files/sbas-ion_wg/sbas_iono_white_feb2003.pdf)
+        [6](https://pmc.ncbi.nlm.nih.gov/articles/PMC10346233/)
+        [7](https://www.nature.com/articles/s41598-025-10894-2)
+        [8](https://www.sciencedirect.com/science/article/abs/pii/S0303243414001822)
+        [9](http://www.jpnt.org/wp-content/uploads/2024/03/JPNT-0704-09.pdf)
+        [10](https://pmc.ncbi.nlm.nih.gov/articles/PMC11314970/)
+        [11](https://pmc.ncbi.nlm.nih.gov/articles/PMC6164590/)
+        [12](https://tc.copernicus.org/preprints/tc-2019-262/tc-2019-262.pdf)
+
+        For Sentinel‑1 IW interferometry, a common working assumption is that the effective ground resolution of SLC data is roughly 14 m in range by 14 m in azimuth after focusing, even though the single‑look nominal resolution is often quoted as about 5 m × 20 m and GRD products have 10 m pixel spacing. The key is that in SBAS you typically multilook to something like 20–30 m pixels to increase coherence and reduce noise.
+
+        Using the earlier guideline of retaining only fringes with wavelengths of roughly 5–10 pixels:
+
+        - If your final interferograms are multilooked to about 20 m pixels, 5–10 pixels corresponds to about 100–200 m spatial wavelength.  
+        - If you go coarser, for example 30 m pixels, then 5–10 pixels corresponds to about 150–300 m spatial wavelength.
+
+        Given your comment that you do not care about small spatial deformations, a practical choice is to target a spatial wavelength cutoff in the range of roughly 150–300 m in ground distance, implemented via your anti‑aliasing filter and multilooking parameters. This will strongly suppress very fine fringes but preserve medium‑ to large‑scale deformation signals that are more relevant for your study.
+
+        [1](https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD)
+        [2](https://www.eoportal.org/satellite-missions/copernicus-sentinel-1)
+        [3](https://documentation.dataspace.copernicus.eu/Data/SentinelMissions/Sentinel1.html)
+        [4](https://database.eohandbook.com/database/missionsummary.aspx?missionID=575)
+        [5](https://forum.step.esa.int/t/actual-resolution-of-sentinel-1/19748)
+        [6](https://www.earthdata.nasa.gov/data/instruments/sentinel-1-c-sar)
+        [7](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Data/S1GRD.html)
+        [8](https://docs.sentinel-hub.com/api/latest/data/sentinel-1-grd/)
+        [9](https://www.earthdata.nasa.gov/data/platforms/space-based-platforms/sentinel-1)
+        [10](https://eos.com/find-satellite/sentinel-1/)
+
+sbas_goldstein_psize_reasoning:
+  paper: sensors-16-01976.pdf
+  value: 32
+  desc:
+    - |
+      For Goldstein filtering in Sentinel-1 InSAR interferograms, a block size of 32×32 pixels is a widely recommended starting point, with an overlap of about 16 pixels (half the block size).[2][6]
+
+      ## Why this size
+      - The Goldstein filter processes overlapping patches via FFT, smoothing the power spectrum raised to power α (typically 0.5–0.8); 32×32 provides good noise suppression without excessive blurring of fringes, balancing computation time and edge continuity.[1][6][2]
+      - Smaller blocks (e.g., 16×16) risk poor frequency estimation in noisy areas, while larger ones (e.g., 64×64) can oversmooth deformation signals, especially in your case where you prioritize broader patterns over fine details.[3][1]
+
+      ## Tuning for your study
+      - With your focus on large-scale signals and prior 150–300 m wavelength cutoff, stick to 32×32 (or slightly larger, like 48×48 if coherence is high) to further suppress speckle without losing regional deformation trends.[1][2]
+      - Test on a sample interferogram: compute phase standard deviation or coherence improvement, adjusting α adaptively (e.g., via coherence as in Baran modification).[6][1]
+
+      [1](https://pmc.ncbi.nlm.nih.gov/articles/PMC5134634/)
+      [2](https://step.esa.int/main/wp-content/help/versions/10.0.0/snap-toolboxes/org.jlinda.jlinda.nest.ui/operators/PhaseFilterOp.html)
+      [3](https://ui.adsabs.harvard.edu/abs/2023SPIE12551E..0PX/abstract)
+      [4](https://ieeexplore.ieee.org/document/7274723/)
+      [5](https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0308636)
+      [6](https://doris.tudelft.nl/Literature/baran03.pdf)
+      [7](https://www.sciencedirect.com/science/article/pii/S1569843225002687)
+      [8](https://pdfs.semanticscholar.org/b1ba/32055fc9b92ea982ac7cb775e963ca17bcb8.pdf)
+
+      A 200 m spatial wavelength cutoff for your anti-aliasing filter aligns well with Sentinel-1 IW SLC processing, where the nominal single-look resolution is approximately 5 m (range) by 20 m (azimuth), but multilooking to 10–20 m pixels is standard in SBAS workflows.[9][10][11]
+
+      ## Pixels equivalent
+      - At 10 m multilooked pixels (common starting point), 200 m corresponds to 20 pixels.  
+      - At 20 m pixels (frequent in final SBAS products for noise reduction), it is 10 pixels.  
+      Set your filter's minimum wavelength parameter to 10–20 pixels, depending on your exact multilooking factors—this ensures fringes finer than 200 m are suppressed while preserving larger-scale signals.[11][9]
+
+      ## Compatibility with Goldstein
+      - This cutoff pairs effectively with the recommended 32×32 pixel Goldstein block size, as the filter window (roughly 3× the cutoff wavelength in some implementations) will span ~30–60 pixels, providing consistent smoothing scales without excessive computation.[12][13]
+      - In practice, test coherence improvement on sample interferograms after applying both filters to confirm the 200 m scale effectively isolates your desired broad deformation patterns.[13][12]
+
+      [1](https://hyp3-docs.asf.alaska.edu/guides/insar_product_guide/)
+      [2](https://backend.orbit.dtu.dk/ws/files/239535950/POAC19_059.pdf)
+      [3](https://arxiv.org/html/2406.14789v1)
+      [4](https://sentiwiki.copernicus.eu/web/s1-processing)
+      [5](https://topex.ucsd.edu/gmtsar/tar/sentinel_time_series_6.pdf)
+      [6](https://publications.jrc.ec.europa.eu/repository/bitstream/JRC98532/marsecs1report2015_v32.pdf)
+      [7](https://www.sciencedirect.com/science/article/pii/S0034425725005127)
+      [8](https://sentiwiki.copernicus.eu/__attachments/1673968/S1-RS-MDA-52-7441%20-%20Sentinel-1%20Product%20Specification%202023%20-%203.14.1.pdf?inst-v=d9a951f0-c582-4302-a22a-9ac09d4011a4)
+      [9](https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD)
+      [10](https://www.eoportal.org/satellite-missions/copernicus-sentinel-1)
+      [11](https://forum.step.esa.int/t/actual-resolution-of-sentinel-1/19748)
+      [12](https://pmc.ncbi.nlm.nih.gov/articles/PMC5134634/)
+      [13](https://step.esa.int/main/wp-content/help/versions/10.0.0/snap-toolboxes/org.jlinda.jlinda.nest.ui/operators/PhaseFilterOp.html)
+
+ps_spatial_wavelenght_reasoning:
+  paper: 2.pdf
+  value: 100
+  desc:
+    - |
+      For identifying a high-coherence (>0.5) landmask in the PS (Persistent Scatterer) function to select good SBAS pairs, propose a spatial wavelength cutoff of 100–200 m (or 5–10 pixels at 20 m multilooking).[1][4]
+
+      ## Rationale for PS landmask
+      - PS detection relies on stable pixels with consistently high coherence (>0.5–0.7 typical threshold); a moderate spatial wavelength smooths out speckle and minor decorrelation while preserving point-like scatterers on reliable land surfaces.[4][1]
+      - This scale matches your 200 m overall cutoff but is slightly finer for PS, ensuring the landmask captures urban/buildings/rocky areas without including vegetated/water edges where coherence drops below 0.5.[1][4]
+
+      ## Implementation notes
+      - Compute coherence maps at ~20 m pixels, apply the filter, then threshold >0.5 spatially averaged over the wavelength to generate the mask for pair selection.[4]
+      - Pairs where >70–80% of the PS landmask exceeds this coherence are generally "good" for SBAS inclusion, improving network quality without over-restricting.[5][1]
+
+      [1](https://earthconsole.eu/portfolio-item/small-baseline-subset-sbas-insar-beta-for-sentinel-1/)
+      [2](https://terradue.github.io/doc-tep-geohazards-v2/tutorials/gep-sbas-s1.html)
+      [3](https://sentiwiki.copernicus.eu/web/s1-processing)
+      [4](https://step.esa.int/docs/tutorials/S1TBX%20TOPSAR%20Interferometry%20with%20Sentinel-1%20Tutorial_v2.pdf)
+      [5](https://www.sciencedirect.com/science/article/pii/S1569843225000342)
+      [6](https://topex.ucsd.edu/gmtsar/tar/sentinel_time_series_6.pdf)
+
+      Several research papers support using a slightly finer spatial scale (100–200 m) for PS landmask generation compared to broader deformation cutoffs, as it effectively isolates high-coherence urban/rocky pixels while excluding low-coherence vegetated/water edges.[1][2]
+
+      ## Key supporting studies
+      - Bedini (2021) on Sentinel-1 PSI in Vienna demonstrates PS detection via amplitude dispersion index on IW data (5×20 m resolution), yielding high-density PS in urban centers but sparse in vegetated/garden areas, implicitly using ~100 m effective scales to threshold stable scatterers >0.5 coherence equivalent.[1]
+      - Krecke (2025) simulates SmallSat PSI and interpolates PS deformation only where surrounded by ≥2 PS within a 100 m radius, confirming this scale captures clustered urban/rocky PS while filtering low-coherence edges in forests/deserts.[2]
+
+      ## Why finer for PS landmask
+      - PS techniques like those reviewed by Crosetto (2016) rely on point-like scatterers in built/rocky environments, where coherence >0.5–0.7 persists; finer filtering (~100–200 m vs. your 200 m deformation cutoff) avoids averaging in decorrelated vegetation/water fringes during landmask thresholding for SBAS pair selection.[4][1]
+      - This matches practical SBAS workflows where PS-derived masks guide pair selection by focusing on reliable urban/rock domains, improving network quality.[7][2]
+
+      [1](https://journals.tultech.eu/index.php/ijitis/article/download/63/51/53)
+      [2](https://elib.dlr.de/212344/1/Krecke.pdf)
+      [3](https://pdfs.semanticscholar.org/666b/18a16a5edba2aba76723de6a85d0f3de33e0.pdf)
+      [4](https://www.sciencedirect.com/science/article/pii/S0924271615002415)
+      [5](https://ui.adsabs.harvard.edu/abs/2024JPRSG..92..271C/abstract)
+      [6](https://www.scirp.org/journal/paperinformation?paperid=89148)
+      [7](https://earthconsole.eu/portfolio-item/small-baseline-subset-sbas-insar-beta-for-sentinel-1/)
+
+ps_landmask_correlation_threshold_reasoning:
+  paper: null
+  value: 0.7
+  desc:
+    - |
+      Use a coherence threshold of 0.7 for the PS landmask in Sentinel-1 SBAS pair selection, as it better ensures phase stability in urban/rocky areas while excluding marginal vegetated/water edges.[1][5]
+
+      ## Why 0.7 over 0.5
+      - PS techniques require high temporal coherence (>0.5–0.7) for reliable scatterer detection; 0.7 aligns with Sentinel-1's strong 12-day coherence in stable environments, reducing false positives from temporary decorrelation.[5][1]
+      - Studies like Navneet (2018) note that 0.3–0.5 risks noisy inclusions (e.g., water mimicking PS), while 0.7+ yields cleaner PS density in built-up/rocky zones without over-thinning the mask.[2][3]
+      
+      ## Practical trade-offs
+      - 0.5 maximizes coverage but includes ~20–30% unreliable pixels, degrading SBAS inversion; 0.7 prioritizes quality, typically retaining 70–80% of urban/rock PS for robust pair selection.[1][5]
+      - For your meteo-correction focus, 0.7 ensures atmospheric signals are not confounded by low-coherence noise.[2][5]
+      
+      [1](https://isprs-archives.copernicus.org/articles/XLI-B7/835/2016/isprs-archives-XLI-B7-835-2016.pdf)
+      [2](https://www.smu.edu/-/media/site/dedman/academics/departments/earthsciences/pdf/lu/162_navneet_ps_selection_eigenvalue_coherence_matrix_ieee_tgrs_2018_sm.pdf)
+      [3](https://d-nb.info/1099607116/34)
+      [4](https://terradue.github.io/doc-tep-geohazards-v2/tutorials/gep-sbas-s1.html)
+      [5](https://www.sciencedirect.com/science/article/pii/S0924271615002415)
+      [6](https://ieeexplore.ieee.org/document/9472663/)
+      [7](https://elib.uni-stuttgart.de/bitstreams/95c7f1fd-1500-4212-917c-063bb035cc1e/download)
+      [8](https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2021JB022825)
+
+      NOTE: 0.7 removes almost enitre bogo area. 0.6 removes half and 0.5 cover the image area - for landmask only that should be sufficient
+
+ps_connected_components_reasoning:
+  paper: HAZA12_StaMPsPSI_Processing_Tutorial
+  value: 5
+  desc:
+    - |
+      For connected components in PS landmask generation (to discard isolated pixels and retain spatially clustered high-coherence regions), recommend a size of 3–5 pixels minimum.[1][4]
+
+      ## Why this range
+      - Connected components analysis removes noise-induced single or tiny groups of pixels below the threshold, ensuring the landmask consists of robust clusters typical of urban/buildings/rocky areas; StaMPS/PSI workflows use small neighborhoods (e.g., 3–5 pixels at ~20 m resolution, or 60–100 m) to filter outliers while preserving PS density.[4][1]
+      - Smaller (e.g., 3 pixels) maximizes coverage in sparse rocky areas; 5 pixels provides stricter clustering for noisy urban edges, aligning with your 0.7 coherence and 100–200 m scales.[6][1]
+
+      ## Implementation guidance
+      - Apply 8-connected neighborhood (including diagonals) on the binary mask post-thresholding; retain components with ≥3–5 pixels to avoid over-thinning while excluding speckle artifacts.[1][4]
+      - This supports reliable SBAS pair selection by focusing on contiguous high-coherence domains >0.7.[6][1]
+
+      [1](https://eo4society.esa.int/wp-content/uploads/2022/01/HAZA12_StaMPsPSI_Processing_Tutorial.pdf)
+      [2](https://up42.com/blog/how-persistent-scatterer-interferometry-is-used-to-predict-and-prevent)
+      [3](https://web.stanford.edu/group/radar/people/Hooper_Thesis.pdf)
+      [4](https://isprs-archives.copernicus.org/articles/XLIII-B3-2022/333/2022/isprs-archives-XLIII-B3-2022-333-2022.pdf)
+      [5](https://ieeexplore.ieee.org/iel8/4609443/10330207/10729861.pdf)
+      [6](https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2006JB004763)
+      [7](https://www.sciencedirect.com/science/article/abs/pii/S0924271616300399)
+      [8](https://iris.cnr.it/retrieve/b5a007a2-1d6d-4649-ba78-5d729c047f8a/prod_179206-doc_29791.pdf)
+
+sbas_pairs_covering_correlation_count_reasoning:
+  paper: 
+  value: 3
+  desc:
+    - |
+      For the count parameter in the PyGMTSAR function sbas_pairs_covering_correlation, a recommended starting value is often around 2 to 5. 
+      Understanding the count Parameter
+      The count parameter defines the minimum number of interferograms (pairs) that must cover each acquisition date (scene) in your time series analysis. This ensures a well-connected network of data, which is essential for the stability and accuracy of the SBAS method. 
+      Recommended Values and Rationale
+      The ideal count value ensures that every single image in your dataset is linked to a sufficient number of other images, providing redundancy and robust phase unwrapping. [1]
+      count = 2: This is the absolute minimum to form a network (each date has at least two connections). It is a good starting point for a simple, fast initial run or when computational resources are limited.
+      count = 3 to 5: This range provides a strong, robust network with sufficient redundancy to better mitigate noise and phase unwrapping errors. Many standard SBAS examples use values in this range for reliable results.
+      count = 5+: Higher values create a very dense network, leading to more processing time and memory usage. This might be used for highly specific, high-precision research in very stable areas where decorrelation is not a major concern.
+      Practical Advice
+      Start with a value of 3. This usually offers a good balance between computational efficiency and result quality for most Sentinel-1 SBAS analyses.
+      If you encounter problems with phase unwrapping errors or unreliable deformation results (e.g., jumps in the time series), increase the count value to 4 or 5.
+      The function works in conjunction with baseline thresholds (temporal and spatial). The count parameter is the final condition to ensure network connectivity after those initial thresholds are applied.
+      You can visualize the resulting connection graph in PyGMTSAR to ensure all dates are adequately covered before proceeding with the full processing pipeline [2]
+
+      [1](https://www.patreon.com/posts/pygmtsar-python-88794359#:~:text=Lesson%206,-New&text=Explore%20PyGMTSAR's%20(Python%20InSAR)%201D,example%20Jupyter%20notebook%20attached%20below.)
+      [2](https://github.com/AlexeyPechnikov/pygmtsar#:~:text=About%20PyGMTSAR,even%20on%20standard%20commodity%20hardware.)
+
+sbas_unwrapping_correlation_limit:
+  paper: uwrapping.pdf
+  value: 0.4
+  desc:
+    - |
+      For SBAS unwrapping (including in PyGMTSAR), a common and well‑supported practice is to use a **coherence / correlation limit in the range 0.3–0.5**, and to go toward the upper part of this range (around **0.4–0.5**) when you care about clean, stable unwrapping rather than maximizing spatial coverage. [forum.step.esa][1]
+      ## Typical ranges in the literature
+      - SBAS/ESBAS tutorials from sarmap describe an “unwrapping coherence threshold” below which pixels are not unwrapped; values around **0.3–0.4** are indicated as typical starting points, with higher thresholds used in noisy areas to avoid errors. [sarmap][2]
+      - General InSAR practice (e.g., SNAP and GMTSAR discussions) often masks out pixels with coherence **<0.3** before unwrapping, and several experts recommend raising this toward **0.4–0.5** to reduce unwrapping errors when decorrelation is significant. [igppweb.ucsd][3]
+
+      ## PyGMTSAR‑specific context
+      - The PyGMTSAR docs and examples show unwrapping with a common correlation threshold parameter and emphasize that the optimal value should be estimated from the **stack correlation map**, rather than using a fixed universal number. [github][4]
+      - In practice, many Sentinel‑1 SBAS workflows using GMTSAR/PyGMTSAR adopt thresholds corresponding roughly to **ρ ≈ 0.3–0.5**, with the lower end for arid/urban high‑coherence scenes and the upper end for vegetated or otherwise decorrelated areas. [mobigroup.github][5]
+
+      ## Concrete recommendation
+      - For your study (atmospheric‑correction focused, with already quite strict PS/landmask criteria), using **CORRLIMIT ≈ 0.4–0.5** is a good choice:  
+        - Start at **0.4** if you want slightly better spatial coverage.  
+        - Increase to **0.5** if you observe unwrap noise or residues in lower‑coherence regions.  
+      - A practical approach is to inspect the histogram of the stack correlation over your high‑coherence landmask and pick CORRLIMIT such that you keep the clearly stable “mode” of the distribution while discarding the low‑correlation tail, as suggested in PyGMTSAR examples and discussions. [linkedin][6]
+
+      [1](https://forum.step.esa.int/t/coherence-masking/17259)
+      [2](https://www.sarmap.ch/tutorials/SBAS_ESBAS_Tutorial_610.pdf)
+      [3](https://igppweb.ucsd.edu/~fialko/insar/unwrapping.pdf)
+      [4](https://github.com/AlexeyPechnikov/pygmtsar/issues/170)
+      [5](https://mobigroup.github.io/gmtsar/)
+      [6](https://www.linkedin.com/posts/alexey-pechnikov_pygmtsar-python-insar-sbas-correlation-activity-7192436124210847745-6cnu)
+
+      NOTE: 0.4 results in strong removal of the good phase information -> creates jumps 

@@ -1,5 +1,13 @@
 import platform, sys, os
 PATH = os.environ['PATH']
+from os.path import abspath, dirname, join
+PROJ_PATH = dirname(abspath(abspath("")))
+sys.path.insert(0, PROJ_PATH)
+
+from settings.paths import setup
+setup()
+
+
 from pygmtsar import __version__
 print(__version__)
 
@@ -19,12 +27,7 @@ import pyvista as pv
 from pygmtsar import S1, Stack, tqdm_dask, ASF, Tiles, XYZTiles, utils
 
 
-from os.path import abspath, dirname, join
-PROJ_PATH = dirname(abspath(abspath("")))
-sys.path.insert(0, PROJ_PATH)
 
-from settings.paths import setup
-setup()
 
 
 # The subswath is required for partial scene downloads and is not used for burst downloads.
@@ -95,9 +98,9 @@ AOI = gpd.GeoDataFrame.from_features([AOI_dict])
 
 
 secrets = open_json(join(KEYS_DIR, 'keys.json'))
-
+token = secrets['asf']['token']
 # Set these variables to None and you will be prompted to enter your username and password below.
-asf = ASF(secrets['asf']['username'], secrets['asf']['password'])
+asf = ASF(secrets['asf']['username'], secrets['asf']['password'], token=token)
 
 
 
@@ -117,4 +120,4 @@ orbits = S1.download_orbits(DATADIR, S1.scan_slc(DATADIR))
 
 # download Copernicus Global DEM 1 arc-second
 
-dem_geom = Tiles().download_dem(AOI, filename=DEM)
+#dem_geom = Tiles().download_dem(AOI, filename=DEM)

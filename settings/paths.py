@@ -13,7 +13,7 @@ UTIL_DIR = join(PROJ_DIR, 'utils')
 EXTU_DIR = join(UTIL_DIR, 'external')
 INTU_DIR = join(UTIL_DIR, 'internal')
 
-def setup() -> None:
+def global_setup() -> None:
     """
     Add project directories to system path
     """

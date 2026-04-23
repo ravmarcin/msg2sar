@@ -1,6 +1,5 @@
 import platform, sys, os
 PATH = os.environ['PATH']
-from pygmtsar import __version__
 import xarray as xr
 import numpy as np
 import pandas as pd
@@ -12,11 +11,11 @@ import warnings
 warnings.filterwarnings('ignore')
 import pickle
 import xarray
+from typing import List
 
 # plotting modules
 import pyvista as pv
 
-from pygmtsar import S1, Stack, tqdm_dask, ASF, Tiles, XYZTiles, utils
 
 from os.path import abspath, dirname, join
 PROJ_PATH = dirname(dirname(abspath(__file__)))
@@ -26,11 +25,15 @@ from settings.paths import setup
 setup()
 
 
+from pygmtsar import __version__
+from pygmtsar import S1, Stack, tqdm_dask, ASF, Tiles, XYZTiles, utils
+
+
 from settings.paths import DATA_DIR
-from utils.internal.io.json_io import open_json
+from internal.io.json_io import open_json
 from settings.paths import KEYS_DIR
-from utils.internal.io.s1_stack import init_stack
-from utils.internal.geo.aoi import get_aoi
+from internal.io.s1_stack import init_stack
+from internal.geo.aoi import get_aoi
 
 
 main_folder = join(DATA_DIR, 'sar/sbas/desc/2023/bogo_pl_test')
@@ -67,6 +70,7 @@ def pipe0(n_jobs=1):
         drop_if_exists=False
     )
     
+# No params
 def pipe1_1(n_jobs=1):
     sbas = init_stack(
         dem=None,
@@ -83,6 +87,7 @@ def pipe1_1(n_jobs=1):
     
     sbas = None
 
+# Degrees per pixel resolution for the coarse DEM. Default is 12.0/3600. (apparently this value is enough, but we could try to go up to 1.0/3600)
 def pipe1_2(n_jobs=1):
     sbas = init_stack(
         dem=DEM,
@@ -98,6 +103,7 @@ def pipe1_2(n_jobs=1):
     sbas.compute_align(n_jobs=n_jobs)
     sbas = None
     
+# use the original Sentinel-1 resolution (1 pixel spacing)
 def pipe2(n_jobs=1):
 
     sbas = init_stack(
@@ -119,6 +125,8 @@ def pipe2(n_jobs=1):
     
     sbas = None
 
+# Computes look vectors: [longitude, latitude, elevation, look_E, look_N, look_U]
+# no params
 def pipe3():
     sbas = init_stack(
         dem=DEM,
@@ -135,7 +143,7 @@ def pipe3():
     
     sbas = None
     
-
+# No params
 def pipe4():
     sbas = init_stack(
         dem=DEM,
@@ -153,6 +161,9 @@ def pipe4():
     sbas = None
     
 
+sbas_temporal_baseline_limit = 60
+sbas_spatial_wavelenght = 200
+sbas_goldstein_psize = 32
 def pipe6():
     
     sbas = init_stack(
@@ -164,12 +175,17 @@ def pipe6():
         verbose=True,
         drop_if_exists=False
     )
-        
-    baseline_pairs = sbas.sbas_pairs(days=max_baseline_days)
+
+    print('compute interferogram')   
+    baseline_pairs = sbas.sbas_pairs(days=sbas_temporal_baseline_limit)
     
-    sbas.compute_interferogram_multilook(baseline_pairs, 'intf_mlook', wavelength=200, psize=32, weight=sbas.psfunction(), queue=4)
+    sbas.compute_interferogram_multilook(baseline_pairs, 'intf_mlook', wavelength=sbas_spatial_wavelenght, psize=sbas_goldstein_psize, weight=sbas.psfunction(), queue=4)
     
     sbas = None
+
+ps_spatial_wavelenght = 100
+ps_landmask_correlation_threshold = 0.7
+ps_connected_components = 5
     
 # Should be 7?  
 def pipe7(dask_client):
@@ -185,16 +201,19 @@ def pipe7(dask_client):
     )
         
     print('Generate Landmask')
-    psmask_sbas = sbas.multilooking(sbas.psfunction(), coarsen=(1,4), wavelength=100) > 0.5
+    psmask_sbas = sbas.multilooking(sbas.psfunction(), coarsen=(1,4), wavelength=ps_spatial_wavelenght) > ps_landmask_correlation_threshold
     topo_sbas = sbas.get_topo().interp_like(psmask_sbas, method='nearest')
     landmask_sbas = psmask_sbas&(np.isfinite(topo_sbas))
-    landmask_sbas = utils.binary_opening(landmask_sbas, structure=np.ones((20,20)))
-    landmask_sbas = np.isfinite(sbas.conncomp_main(landmask_sbas))
-    landmask_sbas = utils.binary_closing(landmask_sbas, structure=np.ones((20,20)))
+    landmask_sbas = utils.binary_opening(landmask_sbas, structure=np.ones((ps_connected_components,ps_connected_components)))
+    # same as SNAPHU connected components
+    landmask_sbas = np.isfinite(sbas.conncomp_main(landmask_sbas)) # select the largest area among disconnected ones.
+
+    landmask_sbas = utils.binary_closing(landmask_sbas, structure=np.ones((ps_connected_components,ps_connected_components)))
     landmask_sbas = np.isfinite(psmask_sbas.where(landmask_sbas))
     
     print('Closing dask')
-    dask_client.close()
+    close_dask_client(dask_client)
+
     
     print('Saving Landmask')
     landmask_sbas.to_netcdf(os.path.join(WORKDIR, "landmask.nc"), engine='netcdf4')
@@ -208,7 +227,7 @@ def pipe7(dask_client):
     
     return True
     
-    
+sbas_pairs_covering_correlation_count = 3
 def pipe8(dask_client):
     sbas = init_stack(
         dem=DEM,
@@ -239,7 +258,7 @@ def pipe8(dask_client):
     baseline_pairs['corr'] = corr_sbas.mean(['y', 'x'])
     
     # Select best correlated pairs
-    pairs_best = sbas.sbas_pairs_covering_correlation(baseline_pairs, 2)
+    pairs_best = sbas.sbas_pairs_covering_correlation(baseline_pairs, count=sbas_pairs_covering_correlation_count)
     intf_sbas = intf_sbas.sel(pair=pairs_best.pair.values)
     corr_sbas = corr_sbas.sel(pair=pairs_best.pair.values)
     
@@ -248,7 +267,7 @@ def pipe8(dask_client):
     corr_sbas_stack = sbas.sync_cube(corr_sbas_stack, 'corr_sbas_stack')
     
     print('Closing dask')
-    dask_client.close()
+    close_dask_client(dask_client)
     
     print('Saving generated data')
     intf_sbas.to_netcdf(os.path.join(WORKDIR, "phase_sbas.nc"), engine='netcdf4')
@@ -288,60 +307,77 @@ def pipe9(dask_client):
     )
     
     print('Closing dask')
-    dask_client.close()
+    close_dask_client(dask_client)
     
     print('Saving uwrapped array')
     unwrap_sbas.to_netcdf(os.path.join(WORKDIR, "unwrap_sbas.nc"), engine='netcdf4')
     
+
+def close_dask_client(client) -> None:
+    client.close()
+    client = None
+    return None
+
+
 if __name__ == '__main__': 
     
     print('Setting up a client')
     # simple Dask initialization
     
-    def start_client(n_workers=1, memory_limit="3.8GiB"):
+    def start_client(n_workers=1, memory_limit="30GiB"):
         if 'dask_client' in globals():
-            dask_client.close()
+            close_dask_client(dask_client)
         
         dask_client = Client(n_workers=n_workers, memory_limit=memory_limit)
         return dask_client
     
-    def _process(n_workers: int, process: callable, kwargs: dict = None):
-        dask_client = start_client(n_workers)
-        #try:
-        if True:
+    def _process(n_workers: int, process: callable, kwargs: dict = None, client = None):
+        if client is None:
+            client = start_client(n_workers)
+        try:
+            #if True:
             if isinstance(kwargs, dict) and 'dask_client' in list(kwargs.keys()):
-                kwargs['dask_client'] = dask_client
+                kwargs['dask_client'] = client
                 
             if kwargs is not None:
                 output = process(**kwargs)
             else:
                 output = process()
+
             if not output:
                 print('Closing dask')
-                dask_client.close()
-        #except Exception as e:
-        #    print(f'Error in {process.__name__}')
-        #    print(e)
-        #    print('Closing dask')
-        #    dask_client.close()
+                close_dask_client(client)
+            else:
+                client = None
+
+        except Exception as e:
+            print(f'Error in {process.__name__}')
+            print(e)
+            print('Closing dask')
+            close_dask_client(client)
+
+        return client
     
-    #_process(2, pipe1_1, dict(n_jobs=2))
-    #_process(2, pipe1_2, dict(n_jobs=2))
+    client = None
+    """
+    client = _process(2, pipe1_1, kwargs=dict(n_jobs=2))
+
+    client = _process(2, pipe1_2, kwargs=dict(n_jobs=2), client=client)
     
-    #_process(2, pipe2, dict(n_jobs=2))
+    client = _process(2, pipe2, kwargs=dict(n_jobs=2), client=client)
     
-    #_process(2, pipe3)
+    client = _process(2, pipe3, client=client)
     
-    #_process(1, pipe4)
+    client = _process(1, pipe4, client=client)
     
-    #_process(1, pipe6)
+    client = _process(1, pipe6, client=client)
     
-    #_process(1, pipe7, dict(dask_client=True))
+    client = _process(1, pipe7, kwargs=dict(dask_client=True), client=client)
+    """
+    client = _process(1, pipe8, kwargs=dict(dask_client=True), client=client)
     
-    #_process(1, pipe8, dict(dask_client=True))
     
+    client = _process(2, pipe9, kwargs=dict(dask_client=True), client=client)
     
-    #_process(2, pipe9, dict(dask_client=True))
-    
-    _process(1, pipe0)
+    #_process(1, pipe0)
     

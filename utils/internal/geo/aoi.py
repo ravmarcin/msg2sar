@@ -2,11 +2,15 @@ from utils.internal.io.json_io import open_json
 
 
 def get_aoi(
-    json_path: str,
+    aois_data: dict,
     aoi_name: str,
+    json_path: str = None,
     aoi_name_key: str = 'aoiName'
 ) -> dict:
-    aois_data = open_json(json_path)
+    
+    if aois_data is None:
+        aois_data = open_json(json_path)
+        
     aois = aois_data['features']
     aoi = {}
     for f in aois:

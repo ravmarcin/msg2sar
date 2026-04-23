@@ -1,0 +1,53 @@
+geocoding_pixel_spacing:
+  desc:
+    - |
+      Value 1:
+      The original Sentinel-1 resolution (1 pixel spacing)
+
+spatial_wavelenght:
+  desc:
+    - |
+      In that sentence, “wavelength” does not refer to the radar electromagnetic wavelength (like C‑band or L‑band), but to the spatial wavelength of fringes in the interferogram at the chosen output resolution.
+
+      ### Meaning in this context
+      - When an interferogram is resampled to a given output pixel size, there is a maximum spatial frequency (i.e., minimum fringe spacing, or “wavelength” in pixels/meters) that can be represented without aliasing.  
+      - “Wavelength = define anti-aliasing filter for the specified output resolution” means: you specify the smallest fringe spacing you want to preserve at that output resolution, and the software designs a low‑pass (anti‑alias) filter whose cutoff is set by that spatial wavelength so that higher spatial frequencies (tighter fringes than can be safely sampled) are filtered out.
+
+      ### Why this matters in SBAS processing
+      - If this “wavelength” is set too small (trying to keep very fine fringes at a coarse pixel size), aliasing will occur and phase will be misrepresented.  
+      - If it is set too large, the filter will remove real deformation signals with relatively fine fringes, oversmoothing the interferogram.
+
+      [1](https://lagrange.oca.eu/images/LAGRANGE/seminaires/patru.pdf)
+      [2](https://www.thorlabs.com/images/PDF/AISCatalog/OCT-ProvenComponents_revC.pdf)
+      [3](https://www.sealevel.com/how-and-why-to-use-an-anti-aliasing-filter)
+      [4](https://www.spotimaging.com/downloads/public/pdf/omega_optical_filters.pdf)
+      [5](https://pubs.aip.org/aip/rsi/article/86/7/074501/831392/Readout-for-intersatellite-laser-interferometry)
+      [6](https://en.wikipedia.org/wiki/Optical_filter)
+      [7](https://www.nist.gov/publications/wavelength-references-interferometry-air)
+
+sbas_goldstein_psize:
+  desc:
+    - |
+      Goldstein filtering window size in pixels
+
+connected_components:
+  desc:
+    - |
+      Grow a connected component mask for the unwrapped solution and write the mask to the file maskfile. A connected component is a region of pixels in the solution that is believed to have been unwrapped in a relative, internally self-consistent manner according to the statistical costs used. Regions that are smaller than a preselected threshold are masked out. Parameters for this option can be set in the configuration file. The connected component file is composed of unsigned characters by default, with all pixels of the same value belonging to the same connected component and zero corresponding to masked pixels.
+
+sbas_pairs_covering_correlation_count:
+  desc:
+    - |
+      In the Small Baseline Subset (SBAS) method, the selection of image pairs is a critical process aimed at maintaining high correlation (coherence) and minimizing decorrelation effects. This is achieved by adhering to strict thresholds for both spatial and temporal baselines, resulting in a network of connected interferometric pairs. 
+      Principles of SBAS Pair Selection and Correlation
+      The primary goal of the SBAS technique is to create an interconnected network of interferograms where each pair has a high likelihood of good coherence. 
+      Minimizing Decorrelation: SAR image pairs with short temporal and spatial baselines are selected to reduce decorrelation (loss of signal correlation over time or distance). This approach ensures the quality and reliability of the interferometric phase, which is essential for accurate deformation measurement.
+      Ensuring Redundancy: The selection process aims to generate a sufficient number of redundant interferograms. This redundancy is vital for preventing the propagation of errors, such as phase unwrapping issues, across the entire time series analysis.
+      Optimizing Coherence: Coherence, or the cross-correlation coefficient between two complex SAR images, is the key metric. The conventional method uses fixed thresholds for baselines, but advanced techniques may use the average coherence itself as a more direct threshold to optimize pair combination, especially in areas with high variability like those with significant seasonal vegetation changes.
+      Connection Graph: The selected pairs form a "connection graph," which visually represents the network of interferograms used in the processing. Software tools like the ASF Vertex SBAS Search or PyGMTSAR's tools help users select optimal pairs and visualize this graph, ensuring all acquisition dates are adequately covered. 
+      The Role of Correlation in Processing
+      During the SBAS processing, the correlation of the selected pairs is further leveraged: 
+      A correlation threshold is often applied to select pixels that exhibit stable scattering patterns (coherent pixels or persistent scatterers) for detailed analysis.
+      A correlation-weighted least-squares solution is used to calculate displacements, giving more weight to data from highly coherent areas and improving the accuracy of the final deformation time series. 
+      By focusing on high-correlation, short-baseline pairs, the SBAS method effectively overcomes many of the limitations of traditional InSAR, enabling high-precision monitoring of ground deformation phenomena like land subsidence and landslides.
+

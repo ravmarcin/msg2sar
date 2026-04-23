@@ -1,4 +1,4 @@
-from settings.paths import setup
+from settings.paths import global_setup
 
 # Load projects dirs
-setup()
+global_setup()
