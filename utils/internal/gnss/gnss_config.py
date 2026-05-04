@@ -54,7 +54,12 @@ class GnssConfig:
         self.gnss_stations = self.data_gnss.get("stations", "auto")
         self.temporal_buffer_hours = self.data_gnss.get("temporal_buffer_hours", 6)
         self.spatial_buffer_km = self.data_gnss.get("spatial_buffer_km", 100)
-        self.epos_api_url = self.data_gnss.get("epos_api_url", "https://tcs.ah-epos.eu/")
+
+        # EPOS GLASS Framework API (corrected URL)
+        self.epos_api_url = self.data_gnss.get(
+            "epos_api_url",
+            "https://gnssdata-epos.oca.eu/GlassFramework/"
+        )
 
     def __get_full_paths(self) -> None:
         if self.data_gnss:

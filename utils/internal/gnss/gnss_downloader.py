@@ -83,7 +83,11 @@ class GnssDownloader:
         end_date: datetime
     ) -> pd.DataFrame:
         """
-        Query EPOS Tropospheric Correction Service API.
+        Query EPOS GNSS Data Portal (GLASS Framework) API.
+
+        The GLASS Framework provides access to GNSS station data including
+        tropospheric delays. API documentation:
+        https://gnssdata-epos.oca.eu/GlassFramework/
 
         Args:
             bounds: [minx, miny, maxx, maxy] in WGS84
@@ -93,53 +97,228 @@ class GnssDownloader:
         Returns:
             DataFrame with GNSS ZTD data
         """
-        # EPOS API endpoint for tropospheric data
-        api_url = f"{self.config.epos_api_url}api/v1/execute"
+        # EPOS GLASS Framework API endpoints
+        base_url = self.config.epos_api_url.rstrip('/')
 
-        # Build query parameters
-        params = {
-            'bbox': f"{bounds[0]},{bounds[1]},{bounds[2]},{bounds[3]}",
-            'starttime': start_date.strftime('%Y-%m-%dT%H:%M:%S'),
-            'endtime': end_date.strftime('%Y-%m-%dT%H:%M:%S'),
-            'format': 'json'
+        # First, get list of stations in the area
+        stations_url = f"{base_url}/api/gnss/stations"
+
+        # Build query for stations
+        station_params = {
+            'minLat': bounds[1],
+            'maxLat': bounds[3],
+            'minLon': bounds[0],
+            'maxLon': bounds[2]
         }
 
         try:
-            log.info(f"Sending request to EPOS API: {api_url}")
-            response = requests.get(api_url, params=params, timeout=60)
+            log.info(f"Querying EPOS GLASS Framework for stations in bounds: {bounds}")
+            log.info(f"API URL: {stations_url}")
+
+            # Get stations
+            response = requests.get(stations_url, params=station_params, timeout=60)
             response.raise_for_status()
+            stations_data = response.json()
 
-            # Parse JSON response
-            data = response.json()
+            # Parse station list
+            stations = []
+            if isinstance(stations_data, list):
+                stations = stations_data
+            elif isinstance(stations_data, dict) and 'stations' in stations_data:
+                stations = stations_data['stations']
+            else:
+                log.warning(f"Unexpected stations response format: {type(stations_data)}")
+                stations = []
 
-            # Convert to DataFrame
-            # Note: Actual EPOS response structure may differ
-            # This is a template that needs to be adjusted based on real API response
-            records = []
-            for feature in data.get('features', []):
-                props = feature.get('properties', {})
-                coords = feature.get('geometry', {}).get('coordinates', [])
+            if not stations:
+                log.warning("No GNSS stations found in the specified area")
+                return pd.DataFrame()
 
-                if len(coords) >= 2:
-                    records.append({
-                        'station_id': props.get('station_id', 'unknown'),
-                        'lat': coords[1],
-                        'lon': coords[0],
-                        'ztd': props.get('ztd', None),  # Zenith Tropospheric Delay in meters
-                        'datetime': pd.to_datetime(props.get('datetime'))
-                    })
+            log.info(f"Found {len(stations)} GNSS stations")
 
-            df = pd.DataFrame(records)
-            log.info(f"Retrieved {len(df)} GNSS measurements from {df['station_id'].nunique()} stations")
+            # For each station, get ZTD data
+            all_records = []
+
+            for station in stations[:20]:  # Limit to 20 stations to avoid too many requests
+                station_id = station.get('id') or station.get('stationId') or station.get('name')
+                if not station_id:
+                    continue
+
+                # Get ZTD data for this station
+                ztd_url = f"{base_url}/api/gnss/troposphere"
+                ztd_params = {
+                    'station': station_id,
+                    'startTime': start_date.strftime('%Y-%m-%dT%H:%M:%S'),
+                    'endTime': end_date.strftime('%Y-%m-%dT%H:%M:%S'),
+                    'format': 'json'
+                }
+
+                try:
+                    log.debug(f"Querying ZTD for station {station_id}")
+                    ztd_response = requests.get(ztd_url, params=ztd_params, timeout=30)
+
+                    if ztd_response.status_code == 200:
+                        ztd_data = ztd_response.json()
+
+                        # Parse ZTD data
+                        station_lat = station.get('latitude') or station.get('lat')
+                        station_lon = station.get('longitude') or station.get('lon')
+
+                        if isinstance(ztd_data, list):
+                            for record in ztd_data:
+                                all_records.append({
+                                    'station_id': station_id,
+                                    'lat': station_lat,
+                                    'lon': station_lon,
+                                    'ztd': record.get('ztd', record.get('value')),
+                                    'datetime': pd.to_datetime(record.get('datetime', record.get('timestamp')))
+                                })
+                        elif isinstance(ztd_data, dict):
+                            # Single record or different format
+                            all_records.append({
+                                'station_id': station_id,
+                                'lat': station_lat,
+                                'lon': station_lon,
+                                'ztd': ztd_data.get('ztd', ztd_data.get('value')),
+                                'datetime': pd.to_datetime(ztd_data.get('datetime', ztd_data.get('timestamp')))
+                            })
+
+                except requests.exceptions.RequestException as e:
+                    log.warning(f"Failed to get ZTD for station {station_id}: {e}")
+                    continue
+
+            if not all_records:
+                log.warning("No ZTD data retrieved from any station")
+                return pd.DataFrame()
+
+            df = pd.DataFrame(all_records)
+
+            # Remove records with missing ZTD
+            df = df.dropna(subset=['ztd'])
+
+            log.info(f"Retrieved {len(df)} GNSS ZTD measurements from {df['station_id'].nunique()} stations")
 
             return df
 
         except requests.exceptions.RequestException as e:
             log.error(f"EPOS API request failed: {e}")
+            log.error(f"URL attempted: {stations_url}")
+            log.error(f"This may be because the EPOS GLASS API structure has changed.")
+            log.error(f"Please check: {base_url}")
+            log.info(f"\nAlternative: You can manually download GNSS data from:")
+            log.info(f"  - Nevada Geodetic Laboratory: http://geodesy.unr.edu/")
+            log.info(f"  - EUREF: http://www.epncb.oma.be/")
+            log.info(f"  - IGS: https://igs.org/")
             return pd.DataFrame()
 
         except (KeyError, ValueError) as e:
             log.error(f"Failed to parse EPOS API response: {e}")
+            return pd.DataFrame()
+
+    def load_gnss_from_file(
+        self,
+        filepath: str,
+        file_format: str = 'auto'
+    ) -> pd.DataFrame:
+        """
+        Load GNSS ZTD data from a file (alternative to API download).
+
+        Supports multiple formats:
+        - CSV: pre-formatted GNSS data
+        - Nevada Geodetic Lab format
+        - IGS ZTD format
+        - Custom format with configurable columns
+
+        Args:
+            filepath: Path to GNSS data file
+            file_format: Format type ('csv', 'nevada', 'igs', 'auto')
+
+        Returns:
+            DataFrame with GNSS ZTD data
+        """
+        log.info(f"Loading GNSS data from file: {filepath}")
+
+        if not os.path.exists(filepath):
+            log.error(f"File not found: {filepath}")
+            return pd.DataFrame()
+
+        try:
+            if file_format == 'auto':
+                # Auto-detect format based on file extension
+                ext = os.path.splitext(filepath)[1].lower()
+                if ext == '.csv':
+                    file_format = 'csv'
+                elif ext == '.ztd':
+                    file_format = 'igs'
+                else:
+                    file_format = 'csv'
+
+            if file_format == 'csv':
+                # Standard CSV format
+                df = pd.read_csv(filepath)
+
+                # Ensure required columns exist
+                required_cols = ['station_id', 'lat', 'lon', 'ztd', 'datetime']
+                missing_cols = [col for col in required_cols if col not in df.columns]
+
+                if missing_cols:
+                    log.error(f"CSV missing required columns: {missing_cols}")
+                    log.info(f"Expected columns: {required_cols}")
+                    log.info(f"Found columns: {list(df.columns)}")
+                    return pd.DataFrame()
+
+                # Convert datetime column
+                df['datetime'] = pd.to_datetime(df['datetime'])
+
+            elif file_format == 'nevada':
+                # Nevada Geodetic Laboratory format
+                # Format: DATE, LAT, LON, ZTD_VALUE
+                df = pd.read_csv(
+                    filepath,
+                    delim_whitespace=True,
+                    names=['datetime', 'lat', 'lon', 'ztd'],
+                    comment='#'
+                )
+                df['datetime'] = pd.to_datetime(df['datetime'])
+                df['station_id'] = os.path.splitext(os.path.basename(filepath))[0]
+
+            elif file_format == 'igs':
+                # IGS ZTD format (simplified parser)
+                records = []
+                with open(filepath, 'r') as f:
+                    for line in f:
+                        if line.startswith('#') or not line.strip():
+                            continue
+                        parts = line.split()
+                        if len(parts) >= 4:
+                            records.append({
+                                'datetime': pd.to_datetime(parts[0]),
+                                'ztd': float(parts[1]),
+                                'lat': float(parts[2]) if len(parts) > 2 else None,
+                                'lon': float(parts[3]) if len(parts) > 3 else None
+                            })
+                df = pd.DataFrame(records)
+                df['station_id'] = os.path.splitext(os.path.basename(filepath))[0]
+
+            else:
+                log.error(f"Unsupported file format: {file_format}")
+                return pd.DataFrame()
+
+            log.info(f"Loaded {len(df)} GNSS measurements from file")
+            log.info(f"  Stations: {df['station_id'].nunique()}")
+            log.info(f"  Date range: {df['datetime'].min()} to {df['datetime'].max()}")
+
+            # Save to standard location
+            output_path = os.path.join(self.config.download_dir, self.config.output_name)
+            df.to_csv(output_path, index=False)
+            log.info(f"Saved to: {output_path}")
+
+            return df
+
+        except Exception as e:
+            log.error(f"Failed to load GNSS data from file: {e}")
+            import traceback
+            traceback.print_exc()
             return pd.DataFrame()
 
     def compute_reference_ztd(
