@@ -350,7 +350,7 @@ scripts/                        ⏳ To be created
 
 ### GNSS Data Download
 ```python
-from utils.internal.gnss import GnssDownloader
+from libs.internal.gnss import GnssDownloader
 from datetime import datetime
 
 downloader = GnssDownloader('data/configs/gnss/2023/bogo_pl.json')
@@ -364,7 +364,7 @@ gnss_data = downloader.download_gnss_stations(
 
 ### GACOS Correction
 ```python
-from utils.internal.gacos import GacosProcessor
+from libs.internal.gacos import GacosProcessor
 from datetime import datetime
 
 processor = GacosProcessor('data/configs/gacos/2023/bogo_pl.json')
@@ -381,8 +381,8 @@ corrected = processor.process_interferogram(
 
 ### SEVIRI Temporal Processing
 ```python
-from utils.internal.msg.seviri_temporal import SeviriTemporalProcessor
-from utils.internal.msg.msg_config import MsgConfig
+from libs.internal.msg.seviri_temporal import SeviriTemporalProcessor
+from libs.internal.msg.msg_config import MsgConfig
 from datetime import datetime
 
 config = MsgConfig('data/configs/msg/seviri/2023/bogo_pl.json')

@@ -14,7 +14,7 @@ setup()
 
 
 from settings.paths import DATA_DIR
-from utils.internal.io.json_io import open_json
+from libs.internal.io.json_io import open_json
 from settings.paths import KEYS_DIR
 
 main_folder = join(DATA_DIR, 'sar/sbas/desc/2023/bogo_pl_test')

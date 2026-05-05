@@ -47,3 +47,4 @@ pytest-cov>=4.1.0         # Coverage reports
 pytest-mock>=3.12.0       # Mocking for tests
 albumentations>=1.4.0     # Data augmentation, updated for compatibility
 scipy>=1.12.0             # Scientific computing, Python 3.12 ready
+cdsapi>=0.7.0             # Copernicus Climate Data Store API for GNSS data

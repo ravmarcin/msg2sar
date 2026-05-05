@@ -25,13 +25,13 @@ try:
     from local_setup import local_setup
     local_setup()
 except ModuleNotFoundError:
-    from utils.internal.sbas.local_setup import local_setup
+    from libs.internal.sbas.local_setup import local_setup
     local_setup()
 
 import torch
 import time
 import numpy as np
-from utils.internal.ml.models.unet import AtmosphericCorrectionUNet
+from libs.internal.ml.models.unet import AtmosphericCorrectionUNet
 
 
 def test_mps_availability():

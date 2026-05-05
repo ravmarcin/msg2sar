@@ -28,14 +28,14 @@ try:
     from local_setup import local_setup
     local_setup()
 except ModuleNotFoundError:
-    from utils.internal.sbas.local_setup import local_setup
+    from libs.internal.sbas.local_setup import local_setup
     local_setup()
 
 import numpy as np
 import xarray as xr
 from datetime import datetime
-from utils.internal.ml.data_config import MLDataConfig
-from utils.internal.log.logger import get_logger
+from libs.internal.ml.data_config import MLDataConfig
+from libs.internal.log.logger import get_logger
 
 log = get_logger()
 

@@ -176,7 +176,7 @@ Create a minimal test to verify training works:
 ```python
 # test_training.py
 import torch
-from utils.internal.ml.models.unet import AtmosphericCorrectionUNet
+from libs.internal.ml.models.unet import AtmosphericCorrectionUNet
 
 # Check device
 device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")

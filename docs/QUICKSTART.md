@@ -49,7 +49,7 @@ This implementation adds ML-based atmospheric correction capabilities to msg2sar
 ### 1. Download GNSS Data
 
 ```python
-from utils.internal.gnss import GnssDownloader
+from libs.internal.gnss import GnssDownloader
 from datetime import datetime
 
 # Initialize downloader
@@ -70,7 +70,7 @@ ztd = downloader.compute_reference_ztd(
 ### 2. Apply GACOS Correction
 
 ```python
-from utils.internal.gacos import GacosProcessor
+from libs.internal.gacos import GacosProcessor
 from datetime import datetime
 import xarray as xr
 
@@ -94,9 +94,9 @@ corrected = processor.process_interferogram(
 ### 3. Process SEVIRI Temporal Stack
 
 ```python
-from utils.internal.msg.seviri_temporal import SeviriTemporalProcessor
-from utils.internal.msg.msg_config import MsgConfig
-from utils.internal.msg.pymsg.stack_base import MsgStackBase
+from libs.internal.msg.seviri_temporal import SeviriTemporalProcessor
+from libs.internal.msg.msg_config import MsgConfig
+from libs.internal.msg.pymsg.stack_base import MsgStackBase
 from datetime import datetime
 
 # Initialize
@@ -126,8 +126,8 @@ processor.save_temporal_stack(temporal_stack)
 ### 4. Compute SAR Geometry
 
 ```python
-from utils.internal.msg.seviri_sar_geometry import SeviriSarGeometryConverter
-from utils.internal.msg.msg_config import MsgConfig
+from libs.internal.msg.seviri_sar_geometry import SeviriSarGeometryConverter
+from libs.internal.msg.msg_config import MsgConfig
 import numpy as np
 
 # Initialize
@@ -152,8 +152,8 @@ converter.save_los_geometry(los_geometry)
 ### 5. Prepare ML Data
 
 ```python
-from utils.internal.ml import MLDataConfig, AtmosphericCorrectionDataset
-from utils.internal.ml.data_loader import get_data_loaders
+from libs.internal.ml import MLDataConfig, AtmosphericCorrectionDataset
+from libs.internal.ml.data_loader import get_data_loaders
 
 # Initialize config
 config = MLDataConfig('data/configs/ml/atmospheric_correction/bogo_pl_master.json')
@@ -313,13 +313,13 @@ Test each component individually:
 
 ```python
 # Test GNSS
-python -c "from utils.internal.gnss import GnssConfig; c = GnssConfig('data/configs/gnss/2023/bogo_pl.json'); print(c.job_name)"
+python -c "from libs.internal.gnss import GnssConfig; c = GnssConfig('data/configs/gnss/2023/bogo_pl.json'); print(c.job_name)"
 
 # Test GACOS
-python -c "from utils.internal.gacos import GacosConfig; c = GacosConfig('data/configs/gacos/2023/bogo_pl.json'); print(c.job_name)"
+python -c "from libs.internal.gacos import GacosConfig; c = GacosConfig('data/configs/gacos/2023/bogo_pl.json'); print(c.job_name)"
 
 # Test ML Config
-python -c "from utils.internal.ml import MLDataConfig; c = MLDataConfig('data/configs/ml/atmospheric_correction/bogo_pl_master.json'); print(c.job_name)"
+python -c "from libs.internal.ml import MLDataConfig; c = MLDataConfig('data/configs/ml/atmospheric_correction/bogo_pl_master.json'); print(c.job_name)"
 ```
 
 ### Unit Tests (TODO)

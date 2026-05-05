@@ -9,9 +9,9 @@ DATA_DIR = join(PROJ_DIR, 'data')
 KEYS_DIR = join(PROJ_DIR, '.secrets')
 NOTE_DIR = join(PROJ_DIR, 'notebooks')
 SCRI_DIR = join(PROJ_DIR, 'scripts')
-UTIL_DIR = join(PROJ_DIR, 'utils')
-EXTU_DIR = join(UTIL_DIR, 'external')
-INTU_DIR = join(UTIL_DIR, 'internal')
+LIBS_DIR = join(PROJ_DIR, 'libs')
+EXTU_DIR = join(LIBS_DIR, 'external')
+INTU_DIR = join(LIBS_DIR, 'internal')
 
 def global_setup() -> None:
     """
@@ -23,7 +23,7 @@ def global_setup() -> None:
     sys.path.insert(0, KEYS_DIR)
     sys.path.insert(0, NOTE_DIR)
     sys.path.insert(0, SCRI_DIR)
-    sys.path.insert(0, UTIL_DIR)
+    sys.path.insert(0, LIBS_DIR)
     sys.path.insert(0, EXTU_DIR)
     sys.path.insert(0, INTU_DIR)
 

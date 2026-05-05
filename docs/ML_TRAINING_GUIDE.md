@@ -69,8 +69,8 @@ The model requires three types of input data:
 #### 1a. Process SEVIRI Data
 
 ```python
-from utils.internal.msg.seviri_temporal import SeviriTemporalProcessor
-from utils.internal.msg.msg_config import MsgConfig
+from libs.internal.msg.seviri_temporal import SeviriTemporalProcessor
+from libs.internal.msg.msg_config import MsgConfig
 from datetime import datetime
 
 # Initialize
@@ -98,7 +98,7 @@ for timestamp in sar_timestamps:
 
 ```python
 # From SBAS processing
-from utils.internal.sbas.sbas_process import SbasProcessor
+from libs.internal.sbas.sbas_process import SbasProcessor
 
 processor = SbasProcessor('data/configs/sar/sbas/desc/2023/bogo_pl.json')
 # Extract coherence maps from interferograms
@@ -108,7 +108,7 @@ processor = SbasProcessor('data/configs/sar/sbas/desc/2023/bogo_pl.json')
 #### 1c. Apply GACOS Corrections
 
 ```python
-from utils.internal.gacos import GacosProcessor
+from libs.internal.gacos import GacosProcessor
 from datetime import datetime
 
 processor = GacosProcessor('data/configs/gacos/2023/bogo_pl.json')
@@ -350,7 +350,7 @@ for input_file in input_files:
 
 ```python
 import torch
-from utils.internal.ml import AtmosphericCorrectionUNet, MLDataConfig
+from libs.internal.ml import AtmosphericCorrectionUNet, MLDataConfig
 
 # Load config
 config = MLDataConfig('path/to/config.json')

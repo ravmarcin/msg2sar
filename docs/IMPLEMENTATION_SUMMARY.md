@@ -49,7 +49,7 @@ Successfully implemented the foundation for ML-based atmospheric correction in t
 
 **Usage:**
 ```python
-from utils.internal.gnss import GnssDownloader
+from libs.internal.gnss import GnssDownloader
 
 downloader = GnssDownloader('data/configs/gnss/2023/bogo_pl.json')
 gnss_data = downloader.download_gnss_stations(aoi, date_range)
@@ -88,7 +88,7 @@ ztd = downloader.compute_reference_ztd(sar_timestamp)
 
 **Usage:**
 ```python
-from utils.internal.gacos import GacosProcessor
+from libs.internal.gacos import GacosProcessor
 
 processor = GacosProcessor('data/configs/gacos/2023/bogo_pl.json')
 corrected = processor.process_interferogram(
@@ -128,7 +128,7 @@ corrected = processor.process_interferogram(
 
 **Usage:**
 ```python
-from utils.internal.msg.seviri_temporal import SeviriTemporalProcessor
+from libs.internal.msg.seviri_temporal import SeviriTemporalProcessor
 
 processor = SeviriTemporalProcessor(config)
 temporal_stack = processor.process_temporal_stack(
@@ -168,7 +168,7 @@ processor.save_temporal_stack(temporal_stack)
 
 **Usage:**
 ```python
-from utils.internal.msg.seviri_sar_geometry import SeviriSarGeometryConverter
+from libs.internal.msg.seviri_sar_geometry import SeviriSarGeometryConverter
 
 converter = SeviriSarGeometryConverter(config)
 los_geometry = converter.compute_los_mapping(
@@ -220,7 +220,7 @@ delay_los = converter.convert_seviri_to_los(seviri_refractivity, los_geometry)
 
 **Usage:**
 ```python
-from utils.internal.ml.data_loader import get_data_loaders
+from libs.internal.ml.data_loader import get_data_loaders
 
 train_loader, val_loader = get_data_loaders(
     config, seviri_path, coherence_path, phase_path
@@ -396,15 +396,15 @@ Output: [Batch, 1, 128, 128]
 
 ```bash
 # Test imports
-python -c "from utils.internal.gnss import GnssConfig; print('GNSS OK')"
-python -c "from utils.internal.gacos import GacosConfig; print('GACOS OK')"
-python -c "from utils.internal.msg.seviri_temporal import SeviriTemporalProcessor; print('SEVIRI Temporal OK')"
-python -c "from utils.internal.msg.seviri_sar_geometry import SeviriSarGeometryConverter; print('SEVIRI Geometry OK')"
-python -c "from utils.internal.ml import MLDataConfig; print('ML Config OK')"
+python -c "from libs.internal.gnss import GnssConfig; print('GNSS OK')"
+python -c "from libs.internal.gacos import GacosConfig; print('GACOS OK')"
+python -c "from libs.internal.msg.seviri_temporal import SeviriTemporalProcessor; print('SEVIRI Temporal OK')"
+python -c "from libs.internal.msg.seviri_sar_geometry import SeviriSarGeometryConverter; print('SEVIRI Geometry OK')"
+python -c "from libs.internal.ml import MLDataConfig; print('ML Config OK')"
 
 # Test configuration loading
 python -c "
-from utils.internal.ml import MLDataConfig
+from libs.internal.ml import MLDataConfig
 config = MLDataConfig('data/configs/ml/atmospheric_correction/bogo_pl_master.json')
 print(f'Config loaded: {config.job_name}')
 print(f'Batch size: {config.batch_size}')

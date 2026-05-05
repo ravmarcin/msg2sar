@@ -1,29 +1,47 @@
 #!/usr/bin/env python3
 """
-GNSS Data Download Script
+GNSS Water Vapour and ZTD Data Download Script
 
-Downloads GNSS tropospheric delay data for atmospheric correction validation.
+Downloads GNSS-derived water vapour (TCWV) and zenith tropospheric delay (ZTD) data
+from ECMWF's Copernicus Climate Data Store for atmospheric correction validation.
+
+Data source: IGS and EPN GNSS networks (1996-present)
+Provider: ECMWF via Copernicus Climate Data Store (CDS)
+Variables: Zenith Total Delay, Total Column Water Vapour, TCWV ERA5
 
 Supports multiple methods:
-1. EPOS GLASS Framework API (automatic, may require updates)
+1. Copernicus CDS API (automatic, requires CDS API key)
 2. Manual file import (CSV, Nevada format, IGS format)
-3. Synthetic data generation (for testing)
+
+Configuration:
+    Dates can be specified in config using one of:
+    - "dates": ["20220115", "20220220", ...]  (specific dates)
+    - "year": 2022  (entire year)
+    - If neither specified, uses default date range
 
 Usage:
-    # Try API download (may not work if API has changed)
-    python scripts/download_gnss_data.py --config data/configs/gnss/2023/bogo_pl.json --method api
+    # API download (requires CDS credentials in .secrets/keys.json)
+    python scripts/download_gnss_data.py --config data/configs/gnss/2022/bogo_pl.json --method api
 
     # Load from CSV file
-    python scripts/download_gnss_data.py --config data/configs/gnss/2023/bogo_pl.json --method file --file path/to/gnss_data.csv
+    python scripts/download_gnss_data.py --config data/configs/gnss/2022/bogo_pl.json --method file --file path/to/gnss_data.csv
 
-    # Generate synthetic data (for testing)
-    python scripts/download_gnss_data.py --config data/configs/gnss/2023/bogo_pl.json --method synthetic
+CDS API Setup:
+    1. Register at https://cds.climate.copernicus.eu/user/register
+    2. Get your UID and API key from your profile
+    3. Add to .secrets/keys.json:
+       {
+         "cdsapi": {
+           "url": "https://cds.climate.copernicus.eu/api",
+           "token": "UID:API_KEY"
+         }
+       }
 
-Manual download sources:
-    - Nevada Geodetic Laboratory: http://geodesy.unr.edu/
-    - EUREF: http://www.epncb.oma.be/
-    - IGS: https://igs.org/
-    - GNSS Data Portal: https://gnssdata-epos.oca.eu/
+Data Format:
+    Output CSV contains: station_id, lat, lon, datetime, ztd, tcwv, tcwv_era5
+    - ztd: Zenith Total Delay (meters)
+    - tcwv: Total Column Water Vapour from GNSS (kg/m²)
+    - tcwv_era5: Total Column Water Vapour from ERA5 reanalysis (kg/m²)
 """
 
 import argparse
@@ -39,59 +57,84 @@ try:
     from local_setup import local_setup
     local_setup()
 except ModuleNotFoundError:
-    from utils.internal.sbas.local_setup import local_setup
+    from libs.internal.sbas.local_setup import local_setup
     local_setup()
 
 import numpy as np
 import pandas as pd
-from utils.internal.gnss import GnssDownloader, GnssConfig
-from utils.internal.log.logger import get_logger
+from libs.internal.gnss import GnssDownloader, GnssConfig
+from libs.internal.log.logger import get_logger
 
 log = get_logger()
 
 
 def download_via_api(config_path: str):
     """
-    Download GNSS data via EPOS API.
+    Download GNSS water vapour and ZTD data via Copernicus Climate Data Store API.
+
+    Date specification priority:
+    1. config.dates - specific dates (e.g., ["20220115", "20220220"])
+    2. config.year - entire year (e.g., 2022)
+    3. Default fallback - uses dummy date range (ignored if dates/year in config)
 
     Args:
         config_path: Path to config file
     """
     log.info("="*80)
-    log.info("GNSS Data Download via EPOS API")
+    log.info("GNSS Water Vapour & ZTD Download via ECMWF Copernicus CDS")
     log.info("="*80)
 
     downloader = GnssDownloader(config_path)
 
-    # Get date range from config or use defaults
-    start_date = datetime(2023, 1, 1)
-    end_date = datetime(2023, 12, 31)
+    # Date range is only used as fallback if config doesn't specify dates or year
+    # The actual dates are determined by config.dates or config.year
+    if downloader.config.dates:
+        log.info(f"Using {len(downloader.config.dates)} specific dates from config")
+    elif downloader.config.year:
+        log.info(f"Using year {downloader.config.year} from config (all 12 months)")
+    else:
+        log.warning("No dates or year specified in config, using default 2022")
+        start_date = datetime(2022, 1, 1)
+        end_date = datetime(2022, 12, 31)
+        log.info(f"Date range fallback: {start_date.strftime('%Y%m%d')} to {end_date.strftime('%Y%m%d')}")
 
-    log.info(f"Attempting to download GNSS data from EPOS...")
-    log.info(f"Date range: {start_date} to {end_date}")
+    log.info(f"Downloading from ECMWF Copernicus CDS...")
 
     try:
+        # Use dummy dates - actual dates come from config
         gnss_data = downloader.download_gnss_stations(
             aoi=downloader.config.aoi,
-            date_range=(start_date, end_date)
+            date_range=(datetime(2022, 1, 1), datetime(2022, 1, 1))  # Ignored if config has dates/year
         )
 
         if not gnss_data.empty:
             log.info(f"\n✓ Successfully downloaded {len(gnss_data)} measurements")
             log.info(f"  Stations: {gnss_data['station_id'].nunique()}")
             log.info(f"  Date range: {gnss_data['datetime'].min()} to {gnss_data['datetime'].max()}")
+
+            # Show which variables were downloaded
+            data_cols = [col for col in gnss_data.columns if col not in ['station_id', 'lat', 'lon', 'datetime']]
+            log.info(f"  Variables: {', '.join(data_cols)}")
+
+            output_path = f"{downloader.config.download_dir}/{downloader.config.output_name}"
+            log.info(f"  Saved to: {output_path}")
         else:
-            log.error("\n✗ No data retrieved from API")
+            log.error("\n✗ No data retrieved from CDS API")
+            log.info("\nTroubleshooting:")
+            log.info("  1. Check CDS credentials in .secrets/keys.json")
+            log.info("  2. Verify dates/year in config are available")
+            log.info("  3. Check network connection")
             log.info("\nAlternatives:")
-            log.info("  1. Use --method file to load from a file")
-            log.info("  2. Use --method synthetic for testing")
-            log.info("  3. Manually download from:")
-            log.info("     - Nevada: http://geodesy.unr.edu/")
-            log.info("     - EUREF: http://www.epncb.oma.be/")
-            log.info("     - IGS: https://igs.org/")
+            log.info("  - Use --method file to load pre-downloaded data")
 
     except Exception as e:
         log.error(f"Download failed: {e}")
+        log.info("\nTroubleshooting:")
+        log.info("  1. Install cdsapi: pip install cdsapi")
+        log.info("  2. Configure CDS credentials in .secrets/keys.json:")
+        log.info('     "cdsapi": {"url": "https://cds.climate.copernicus.eu/api", "token": "UID:KEY"}')
+        log.info("  3. Register at: https://cds.climate.copernicus.eu/user/register")
+        log.info("  4. Accept the license for 'GNSS' dataset on CDS website")
         import traceback
         traceback.print_exc()
 
@@ -128,89 +171,6 @@ def load_from_file(config_path: str, filepath: str, file_format: str = 'auto'):
         log.error("\n✗ Failed to load data from file")
 
 
-def generate_synthetic(config_path: str):
-    """
-    Generate synthetic GNSS data for testing.
-
-    Args:
-        config_path: Path to config file
-    """
-    log.info("="*80)
-    log.info("Generate Synthetic GNSS Data")
-    log.info("="*80)
-
-    config = GnssConfig(config_path)
-
-    # Get AOI bounds
-    bounds = config.aoi.total_bounds  # minx, miny, maxx, maxy
-
-    log.info(f"Generating synthetic data for AOI: {bounds}")
-
-    # Generate 5-10 synthetic stations
-    n_stations = np.random.randint(5, 11)
-
-    # Create stations within AOI
-    stations = []
-    for i in range(n_stations):
-        lat = np.random.uniform(bounds[1], bounds[3])
-        lon = np.random.uniform(bounds[0], bounds[2])
-        stations.append({
-            'id': f'SYN{i+1:02d}',
-            'lat': lat,
-            'lon': lon
-        })
-
-    # Generate ZTD time series for each station
-    start_date = datetime(2023, 1, 1)
-    end_date = datetime(2023, 12, 31)
-
-    # Daily samples
-    dates = pd.date_range(start_date, end_date, freq='D')
-
-    records = []
-    for station in stations:
-        # Base ZTD around 2.3 meters with daily variation
-        base_ztd = 2.3
-        daily_variation = 0.1
-
-        for date in dates:
-            # Add seasonal variation (more water vapor in summer)
-            day_of_year = date.timetuple().tm_yday
-            seasonal = 0.15 * np.sin(2 * np.pi * day_of_year / 365)
-
-            # Add random noise
-            noise = np.random.normal(0, 0.02)
-
-            ztd = base_ztd + seasonal + daily_variation * np.random.randn() + noise
-
-            records.append({
-                'station_id': station['id'],
-                'lat': station['lat'],
-                'lon': station['lon'],
-                'ztd': ztd,
-                'datetime': date
-            })
-
-    df = pd.DataFrame(records)
-
-    # Save to output location
-    import os
-    output_path = os.path.join(config.download_dir, config.output_name)
-    df.to_csv(output_path, index=False)
-
-    log.info(f"\n✓ Generated {len(df)} synthetic measurements")
-    log.info(f"  Stations: {n_stations}")
-    log.info(f"  Date range: {df['datetime'].min()} to {df['datetime'].max()}")
-    log.info(f"  ZTD range: {df['ztd'].min():.4f} - {df['ztd'].max():.4f} m")
-    log.info(f"  Saved to: {output_path}")
-
-    log.info(f"\nSample data:")
-    print(df.head())
-
-    log.warning("\nNote: This is SYNTHETIC data for testing only!")
-    log.warning("Do not use for scientific validation.")
-
-
 def print_manual_instructions():
     """Print instructions for manual GNSS data download."""
     print("\n" + "="*80)
@@ -240,12 +200,14 @@ def print_manual_instructions():
     print("   - Download troposphere products")
     print("   - Convert to CSV format")
 
-    print("\n4. EPOS GNSS Data Portal")
-    print("   URL: https://gnssdata-epos.oca.eu/")
+    print("\n4. ECMWF Copernicus Climate Data Store (Recommended)")
+    print("   URL: https://cds.climate.copernicus.eu/datasets/insitu-observations-gnss")
     print("   Steps:")
-    print("   - Use web interface to browse stations")
-    print("   - Download processed troposphere products")
-    print("   - Convert to CSV format")
+    print("   - Register for free account and get API credentials")
+    print("   - Add credentials to .secrets/keys.json")
+    print("   - Use automated download with: --method api")
+    print("   - Downloads ZTD, TCWV, and TCWV ERA5 automatically")
+    print("   - Or download manually from website and use: --method file")
 
     print("\nStandard CSV format required:")
     print("  Columns: station_id, lat, lon, ztd, datetime")
@@ -261,21 +223,22 @@ def print_manual_instructions():
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Download GNSS tropospheric delay data",
+        description="Download GNSS water vapour and ZTD data from ECMWF Copernicus CDS",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Try API download
-  python scripts/download_gnss_data.py --config data/configs/gnss/2023/bogo_pl.json --method api
+  # Download from Copernicus CDS (requires credentials in .secrets/keys.json)
+  python scripts/download_gnss_data.py --config data/configs/gnss/2022/bogo_pl.json --method api
 
-  # Load from CSV
-  python scripts/download_gnss_data.py --config data/configs/gnss/2023/bogo_pl.json --method file --file gnss_data.csv
-
-  # Generate test data
-  python scripts/download_gnss_data.py --config data/configs/gnss/2023/bogo_pl.json --method synthetic
+  # Load from pre-downloaded CSV
+  python scripts/download_gnss_data.py --config data/configs/gnss/2022/bogo_pl.json --method file --file gnss_data.csv
 
   # Show manual download instructions
   python scripts/download_gnss_data.py --help-manual
+
+Config should specify dates using:
+  - "dates": ["20220115", "20220220", ...] for specific dates
+  - "year": 2022 for entire year
         """
     )
 
@@ -289,7 +252,7 @@ Examples:
     parser.add_argument(
         '--method',
         type=str,
-        choices=['api', 'file', 'synthetic'],
+        choices=['api', 'file'],
         default='api',
         help='Download method (default: api)'
     )
@@ -329,9 +292,6 @@ Examples:
             log.error("--file argument required when using --method file")
             return
         load_from_file(args.config, args.file, args.format)
-
-    elif args.method == 'synthetic':
-        generate_synthetic(args.config)
 
     log.info("\nDone!")
 

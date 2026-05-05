@@ -25,18 +25,18 @@ try:
     from local_setup import local_setup
     local_setup()
 except ModuleNotFoundError:
-    from utils.internal.sbas.local_setup import local_setup
+    from libs.internal.sbas.local_setup import local_setup
     local_setup()
 
 import torch
 import numpy as np
 import xarray as xr
 from datetime import datetime
-from utils.internal.ml import (
+from libs.internal.ml import (
     MLDataConfig,
     AtmosphericCorrectionUNet
 )
-from utils.internal.log.logger import get_logger
+from libs.internal.log.logger import get_logger
 
 log = get_logger()
 
