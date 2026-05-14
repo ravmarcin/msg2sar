@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from typing import Tuple, List
 from pathlib import Path
 from libs.internal.log.logger import get_logger
-from libs.internal.gnss.gnss_config import GnssConfig
+from libs.internal.gnss.cds.gnss_config import GnssConfig
 from libs.internal.io.json_io import open_json
 from settings.paths import KEYS_DIR
 

@@ -62,7 +62,7 @@ except ModuleNotFoundError:
 
 import numpy as np
 import pandas as pd
-from libs.internal.gnss import GnssDownloader, GnssConfig
+from libs.internal.gnss.cds import GnssDownloader, GnssConfig
 from libs.internal.log.logger import get_logger
 
 log = get_logger()

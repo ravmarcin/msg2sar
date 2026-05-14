@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from scipy.interpolate import griddata, interp1d
 from typing import Tuple, Optional
 from libs.internal.log.logger import get_logger
-from libs.internal.gnss.gnss_config import GnssConfig
+from libs.internal.gnss.cds.gnss_config import GnssConfig
 
 log = get_logger()
 

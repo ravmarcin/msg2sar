@@ -47,4 +47,9 @@ pytest-cov>=4.1.0         # Coverage reports
 pytest-mock>=3.12.0       # Mocking for tests
 albumentations>=1.4.0     # Data augmentation, updated for compatibility
 scipy>=1.12.0             # Scientific computing, Python 3.12 ready
-cdsapi>=0.7.0             # Copernicus Climate Data Store API for GNSS data
+cdsapi>=0.7.0             # Copernicus Climate Data Store API for GNSS ZTD data
+
+# GNSS RINEX processing
+gnsspy @ git+https://github.com/GNSSpy-Project/gnsspy  # RINEX reading, orbit interpolation, SPP
+hatanaka>=2.8.0           # CRX to RNX decompression (cross-platform, replaces gnsspy Linux binary)
+ncompress>=1.0.0          # .Z file decompression for SP3/CLK orbit products
