@@ -50,7 +50,7 @@
         }
     },
     "msg_processing": {
-        "spatial_buffer_meters": 4000,
+        "spatial_buffer_meters": 40000,
         "temporal_buffer_min": 15,
         "reader": "seviri_l1b_native",
         "calibration": "radiance",
@@ -64,13 +64,6 @@
           "WV_062",
           "WV_073"
         ],
-        "temporal_downsampling": {
-            "n_images_window": 10,
-            "batch_size_x": 256,
-            "batch_size_y": 256,
-            "overlap": 32,
-            "translation_steps": [8, 4, 2, 1]
-        },
         "sar_geometry": {
             "z_top_m": 12000,
             "dz_m": 100,
@@ -89,11 +82,26 @@
         "raster": {
             "nodata": 0.0,
             "epsg": 4326,
-            "resolution": 0.005,
+            "resolution": 0.0025,
             "projection": {
               "proj": "longlat",
               "ellps": "WGS84",
               "datum": "WGS84"
+            }
+        },
+        "temporal_upsampling": {
+            "film": {
+                "model_path": "data/models/google/film/film-tensorflow2-film-v1",
+                "value_ranges": {
+                    "IR_039": {"vmin": 0.0, "vmax": 1.0},
+                    "IR_087": {"vmin": 8.0, "vmax": 60.0},
+                    "IR_097": {"vmin": 12.0, "vmax": 42.0},
+                    "IR_108": {"vmin": 18.0, "vmax": 100.0},
+                    "IR_120": {"vmin": 24.0, "vmax": 112.0},
+                    "IR_134": {"vmin": 30.0, "vmax": 88.0},
+                    "WV_062": {"vmin": 1.0, "vmax": 3.5},
+                    "WV_073": {"vmin": 3.0, "vmax": 16.0}
+                }
             }
         }
     }

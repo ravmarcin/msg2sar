@@ -1,0 +1,59 @@
+{
+  "id": "film-tensorflow2-film-v1",
+  "name": "FILM: Frame Interpolation for Large Motion",
+  "description": "Google FILM TensorFlow 2 SavedModel, version 1.",
+  "version": "1",
+  "provider": "Google",
+  "framework": "TensorFlow",
+  "model_format": "TensorFlow SavedModel",
+  "license": "Apache-2.0",
+  "model_page": "https://www.kaggle.com/models/google/film/tensorFlow2/film/1",
+  "url": "https://www.kaggle.com/api/v1/models/google/film/tensorFlow2/film/1/download",
+  "python": ">=3.9,<3.14",
+  "libs": [
+    "tensorflow==2.20.0",
+    "tensorflow-hub==0.16.1"
+  ],
+  "download": {
+    "archive_format": "tar.gz",
+    "expected_local_path": "data/models/google/film/film-tensorflow2-film-v1",
+    "authentication": "Kaggle API credentials may be required. Do not store credentials in this file.",
+    "commands": [
+      "mkdir -p data/models/google/film/film-tensorflow2-film-v1",
+      "curl -L --fail --user \"$KAGGLE_USERNAME:$KAGGLE_KEY\" --output /tmp/film-tensorflow2-film-v1.tar.gz https://www.kaggle.com/api/v1/models/google/film/tensorFlow2/film/1/download",
+      "tar -xzf /tmp/film-tensorflow2-film-v1.tar.gz -C data/models/google/film/film-tensorflow2-film-v1"
+    ],
+    "notes": [
+      "Run the commands from the repository root.",
+      "For a public model, Kaggle may allow the download without credentials; if so, omit curl's --user option.",
+      "The extracted directory must contain saved_model.pb and the variables directory."
+    ]
+  },
+  "files": [
+    {
+      "path": "saved_model.pb",
+      "size_bytes": 2638810,
+      "sha256": "4df311e80e9a7282b362a7e93bef22a1ce4f84e7cdeda01f246894545eaaf985"
+    },
+    {
+      "path": "keras_metadata.pb",
+      "size_bytes": 221924,
+      "sha256": "0291f451e35e62a042fa49a1341af1dc8a94632188a24a16b71a9516e9fc6853"
+    },
+    {
+      "path": "variables/variables.index",
+      "size_bytes": 1926,
+      "sha256": "d19bb117eb9abe6121b5711649bb7d5d1c4fe1912b9deabbdafa2be3f5a273e5"
+    },
+    {
+      "path": "variables/variables.data-00000-of-00001",
+      "size_bytes": 137784604,
+      "sha256": "8c47323923bc4826b730dd882c8c7700761aa3ac03b2c8180d3ffc82d18111f9"
+    }
+  ],
+  "total_size_bytes": 140647264,
+  "platform_notes": [
+    "TensorFlow 2.20 supports Python 3.9 through 3.13 on platforms with matching TensorFlow wheels.",
+    "TensorFlow 2.20 does not provide a macOS x86_64 wheel; use Apple Silicon or another supported platform."
+  ]
+}
