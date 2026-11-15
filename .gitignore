@@ -154,6 +154,9 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+# IDE
+.vscode
+
 # ------------------------------------------------
 
 # Secrets:
@@ -163,6 +166,11 @@ cython_debug/
 # Data:
 data/sar
 data/msg
+data/models
+data/gacos
 
 # Old data
 old_code/
+
+# QGIS
+qgis/
