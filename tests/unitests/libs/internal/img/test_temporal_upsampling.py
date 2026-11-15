@@ -1,8 +1,9 @@
+
 import unittest
 import numpy as np
 import datetime
 import rasterio
-from libs.internal.img.temporal_upsampling import batch_temporal_upsampling
+from utils.internal.img.optical_temporal_upsampling import batch_temporal_upsampling
 
 
 class TestBatchTemporalUpsampling(unittest.TestCase):

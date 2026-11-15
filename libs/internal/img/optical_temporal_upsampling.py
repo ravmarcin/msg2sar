@@ -1,4 +1,5 @@
 import numpy as np
+import cv2
 from libs.internal.img.utils import add_x_end, add_y_end, add_x_start, add_y_start
 
 
@@ -211,12 +212,12 @@ def batch_temporal_upsampling(arr_m, arr_s, sev_m_sar_dif, sev_s_sar_dif, nd_val
     :param sev_m_sar_dif: datetime.timedelta    - time difference between reference and master
     :param sev_s_sar_dif: datetime.timedelta    - time difference between reference and slave
     :param nd_val: float                        - value for no data pixels
-    :param batch_size_x: int                    - batch size in x direction
-    :param batch_size_y: int                    - batch size in y direction
-    :param overlap: int                         - overlap between batches
+    :param batch_size_x: int                    - batch size in x direction [px]
+    :param batch_size_y: int                    - batch size in y direction [px]
+    :param overlap: int                         - overlap between batches [px]
     :param steps_: list/tuple                   - steps for get_trans_param
-    :param cut_ref: int                         - cut size for reference in get_trans_param
-    :param cut_fit: int                         - cut size for fit in get_trans_param
+    :param cut_ref: int                         - cut size for reference in get_trans_param [px]
+    :param cut_fit: int                         - cut size for fit in get_trans_param [px]
     :return: 2d np.array                        - full upsampled image
     """
     H, W = arr_m.shape
@@ -260,3 +261,161 @@ def batch_temporal_upsampling(arr_m, arr_s, sev_m_sar_dif, sev_s_sar_dif, nd_val
     return result
 
 
+def shared_norm(arr_m, arr_s, nd_val):
+    """
+    Function to normalize two images based on their min and max values
+    :param arr_m: 2d np.array   - master image
+    :param arr_s: 2d np.array   - slave image
+    :param nd_val: float        - value for no data pixels
+    :return: tuple              - normalized master and slave images
+    """
+    # Mask no data values
+    mask_m = arr_m != nd_val
+    mask_s = arr_s != nd_val
+    
+    # Get min and max values for both images
+    min_m, max_m = np.min(arr_m[mask_m]), np.max(arr_m[mask_m])
+    min_s, max_s = np.min(arr_s[mask_s]), np.max(arr_s[mask_s])
+
+    # Get the global min and max for normalization
+    global_min = min(min_m, min_s)
+    global_max = max(max_m, max_s)
+    
+    # Normalize images
+    norm_m = (arr_m - global_min) / (global_max - global_min)
+    norm_s = (arr_s - global_min) / (global_max - global_min)
+    
+    # Set no data values back to nd_val
+    norm_m[~mask_m] = nd_val
+    norm_s[~mask_s] = nd_val
+    
+    return norm_m, norm_s
+
+
+def warp_with_flow(arr_m, flow, alpha):
+    """
+    Move image forward by alpha * flow.
+
+    :param arr_m: 2d np.array   - master image
+    :param flow: 2d np.array    - motion flow
+    :param alpha: float         - interpolation parameter
+    :return: 2d np.array        - warped image
+    """
+    h, w = arr_m.shape[:2]
+
+    x, y = np.meshgrid(
+        np.arange(w),
+        np.arange(h)
+    )
+
+    map_x = x + alpha * flow[..., 0]
+    map_y = y + alpha * flow[..., 1]
+
+    return cv2.remap(
+        arr_m,
+        map_x.astype(np.float32),
+        map_y.astype(np.float32),
+        interpolation=cv2.INTER_LINEAR,
+        borderMode=cv2.BORDER_CONSTANT
+    )
+
+
+def estimate_tvl1_flow(
+        arr_m,
+        arr_s,
+        nd_val=np.nan,
+        tau=0.25,
+        lambda_=0.15,
+        theta=0.3,
+        nscales=5,
+        warps=5,
+        epsilon=0.01,
+        innnerIterations=30,
+        outerIterations=10,
+        scaleStep=0.8
+    ):
+    """
+    Estimate dense TV-L1 optical flow from arr_m to arr_s.
+    Returns flow : np.ndarray
+        Dense optical flow, shape (H, W, 2).
+        flow[..., 0] = dx
+        flow[..., 1] = dy
+
+    :param arr_m : np.ndarray       - SEVIRI image at t0, shape (H, W)
+    :param arr_s : np.ndarray       - SEVIRI image at t1, shape (H, W)
+    :param nd_val : float           - No data value
+    :param tau : float              - Time step of the numerical scheme.
+    :param lambda_ : float          - Weight parameter for the data term, attachment parameter.
+    :param theta : float            - Weight parameter for (u - v)^2, tightness parameter.
+    :param nscales : int            - Number of scales used to create the pyramid of images.
+    :param warps : int              - Number of warpings per scale.
+    :param epsilon : float          - Stopping criterion threshold used in the numerical scheme.
+    :param innnerIterations : int   - Number of iterations of the numerical scheme per scale.
+    :param outerIterations : int    - Number of outer fixed point iterations.
+    :param scaleStep : float        - Scale factor between scales in the pyramid.
+    :return flow : np.ndarray       - Dense optical flow, shape (H, W, 2).
+    """
+
+    # TV-L1 expects floating-point images
+    arr_m_f32 = arr_m.astype(np.float32)
+    arr_s_f32 = arr_s.astype(np.float32)
+
+    # Normalize images to [0, 1] range
+    arr_m_f32, arr_s_f32 = shared_norm(arr_m_f32, arr_s, nd_val)
+    
+    # Replace NaN/Inf if present
+    arr_m_f32 = np.nan_to_num(arr_m_f32, nan=0.0, posinf=1.0, neginf=0.0)
+    arr_s_f32 = np.nan_to_num(arr_s_f32, nan=0.0, posinf=1.0, neginf=0.0)
+
+    # Try TV-L1 solver (optflow from contrib). Provide fallbacks.
+    flow = None
+    try:
+        # try cv2.optflow (contrib)
+        optflow_mod = getattr(cv2, 'optflow', None)
+        if optflow_mod is not None and hasattr(optflow_mod, 'DualTVL1OpticalFlow_create'):
+            tv_l1 = optflow_mod.DualTVL1OpticalFlow_create(
+                tau=tau,
+                lambda_=lambda_,
+                theta=theta,
+                nscales=nscales,
+                warps=warps,
+                epsilon=epsilon,
+                innnerIterations=innnerIterations,
+                outerIterations=outerIterations,
+                scaleStep=scaleStep
+            )
+            flow = tv_l1.calc(arr_m_f32, arr_s_f32, None)
+        elif hasattr(cv2, 'DualTVL1OpticalFlow_create'):
+            # some builds expose it at top-level
+            tv_l1 = cv2.DualTVL1OpticalFlow_create(
+                tau=tau,
+                lambda_=lambda_,
+                theta=theta,
+                nscales=nscales,
+                warps=warps,
+                epsilon=epsilon,
+                innnerIterations=innnerIterations,
+                outerIterations=outerIterations,
+                scaleStep=scaleStep
+            )
+            flow = tv_l1.calc(arr_m_f32, arr_s_f32, None)
+        else:
+            raise AttributeError('DualTVL1OpticalFlow not available')
+    except Exception:
+        # Fallback to Farneback optical flow if TV-L1 unavailable
+        try:
+            flow_fb = cv2.calcOpticalFlowFarneback(
+                arr_m_f32, arr_s_f32, None,
+                0.5,  # pyr_scale
+                3,    # levels
+                15,   # winsize
+                3,    # iterations
+                5,    # poly_n
+                1.2,  # poly_sigma
+                0     # flags
+            )
+            flow = flow_fb.astype(np.float32)
+        except Exception as e:
+            raise RuntimeError(f"No suitable optical flow implementation available: {e}")
+
+    return flow

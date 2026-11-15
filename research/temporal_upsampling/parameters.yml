@@ -1,0 +1,59 @@
+optical:
+  tvl1_parameters:
+    - parameter: tau
+      meaning: "Step size of the optimization. Controls how aggressively the algorithm updates the flow solution. Larger values can speed convergence but may become unstable."
+      suggested_value: 0.25
+
+    - parameter: lambda
+      meaning: "Weight of the total-variation regularization. Higher values enforce a smoother/less noisy flow field; lower values allow more local variation."
+      suggested_value: 0.15
+
+    - parameter: theta
+      meaning: "Controls the coupling between the optical-flow data term and the regularization term. Lower values generally give stronger coupling/smoother behavior."
+      suggested_value: 0.3
+
+    - parameter: nscales
+      meaning: "Number of scales in the coarse-to-fine image pyramid. More scales help with larger cloud displacements."
+      suggested_value: 5
+
+    - parameter: warps
+      meaning: "Number of image warping iterations performed at each pyramid scale. More iterations can improve the flow for nonlinear/large motion but increase computation."
+      suggested_value: 5
+
+    - parameter: epsilon
+      meaning: "Convergence threshold. Smaller values make the optimization converge more tightly, at the cost of computation."
+      suggested_value: 0.01
+
+    - parameter: innerIterations
+      meaning: "Number of iterations of the inner optimization loop. More iterations can improve convergence but increase runtime."
+      suggested_value: 30
+
+    - parameter: outerIterations
+      meaning: "Number of outer optimization iterations. Increasing it can improve the solution, again at increased computational cost."
+      suggested_value: 10
+
+    - parameter: scaleStep
+      meaning: "Ratio between consecutive pyramid scales. Values closer to 1 give a finer pyramid; smaller values produce larger jumps between scales."
+      suggested_value: 0.8
+
+film:
+  model_parameters:
+    - parameter: model_name
+      meaning: "Name of the pre-trained FILM model to use for temporal upsampling."
+      suggested_value: "film-tensorflow2-film-v1"
+
+    - parameter: input_shape
+      meaning: "Shape of the input frames expected by the model. Should match the model's training configuration."
+      suggested_value: [None, None, 3]
+
+    - parameter: output_shape
+      meaning: "Shape of the output frames produced by the model. Should match the desired upsampled resolution."
+      suggested_value: [None, None, 3]
+
+    - parameter: batch_size
+      meaning: "Number of frames processed in a single batch during inference. Larger batches can improve throughput but require more memory."
+      suggested_value: 4
+
+    - parameter: num_interpolated_frames
+      meaning: "Number of intermediate frames to generate between each pair of input frames."
+      suggested_value: 1
