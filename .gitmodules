@@ -1,3 +1,6 @@
-[submodule "libs/pygmtsar"]
+[submodule "pygmtsar"]
 	path = libs/external/pygmtsar
 	url = git@github.com:ravmarcin/pygmtsar.git
+[submodule "frame-interpolation"]
+	path = libs/external/frame-interpolation
+	url = https://github.com/google-research/frame-interpolation.git

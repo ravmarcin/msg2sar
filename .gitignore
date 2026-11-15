@@ -161,7 +161,8 @@ cython_debug/
 .secrets/keys.json
 
 # Data:
-data/
+data/sar
+data/msg
 
 # Old data
 old_code/
