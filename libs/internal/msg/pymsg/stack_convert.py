@@ -19,13 +19,15 @@ class MsgStackConvert(MsgStackBase):
             geojson_path: str = None,
             projection: dict = None,
             resolution: float = 0.005,
+            spatial_buffer_meters: int = 40000
         ) -> None:
         super().__init__(
             data_dir=data_dir,
             work_dir=work_dir,
             geojson_path=geojson_path,
             projection=projection,
-            resolution=resolution
+            resolution=resolution,
+            spatial_buffer_meters=spatial_buffer_meters
         )
         
     def _resample_values(self, values: np.ndarray, swath_def: pr.geometry.SwathDefinition,
@@ -145,8 +147,8 @@ class MsgStackConvert(MsgStackBase):
         if resample_kwargs is None:
             resample_kwargs = {}
         
-        # Create output directory structure
-        output_base = Path(self.work_dir) / "nat_to_tiff" / dataset
+        # Create output directory structure using the active method name
+        output_base = self.process_path(dataset=dataset)
         output_base.mkdir(parents=True, exist_ok=True)
         
         # Track conversion results

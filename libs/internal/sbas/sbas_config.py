@@ -59,6 +59,8 @@ class SbasConfig:
             self.dem_path = os.path.join(self.download_dir, self.data_sar['dem_name'])
             self.landmask_path = os.path.join(self.process_dir, self.data_sar['landmask_name'])
             self.sbas_intf_path = os.path.join(self.process_dir, self.data_sar['sbas_intf_name'])
+            self.sbas_pairs_path = os.path.join(self.process_dir, self.data_sar['sbas_pairs_name'])
+            self.sbas_pairs_best_path = os.path.join(self.process_dir, self.data_sar['sbas_pairs_best_name'])
             self.sbas_corr_path = os.path.join(self.process_dir, self.data_sar['sbas_corr_name'])
             self.sbas_corr_stack_path = os.path.join(self.process_dir, self.data_sar['sbas_corr_stack_name'])
             self.sbas_uwrapped_path = os.path.join(self.process_dir, self.data_sar['sbas_uwrapped_name'])
@@ -74,6 +76,8 @@ class SbasConfig:
             self.dem_path = None
             self.landmask_path = None
             self.sbas_intf_path = None
+            self.sbas_pairs_path = None
+            self.sbas_pairs_best_path = None
             self.sbas_corr_path = None
             self.sbas_corr_stack_path = None
             self.sbas_uwrapped_path = None
@@ -95,5 +99,3 @@ class SbasConfig:
         else:
             self.aoi_dict = {}
             self.aoi = None
-
-

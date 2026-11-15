@@ -63,6 +63,10 @@ class SbasProcessor:
 
         self.sar_io.save_cube(data, path)
 
+
+    def save_df_data(self, data: pd.DataFrame, path: str) -> None:
+        data.to_csv(path, index=False)
+
     
     def open_cube_data(self, path: str) -> xr.DataArray:
 
@@ -94,7 +98,7 @@ class SbasProcessor:
         sbas_data = self.spec.get_stack(add_dem=False)
         
         log.info(f"Process start: REFRAMING")
-        sbas_data.compute_reframe(self.config.aoi, n_jobs=n_jobs)
+        sbas_data.compute_reframe(self.config.aoi, n_jobs=n_jobs, debug=True)
         log.info(f"Process end: REFRAMING")
         
         log.info('Cleaning')
@@ -127,6 +131,18 @@ class SbasProcessor:
         log.info('Cleaning')
         sbas_data = None
 
+    
+    def ps(self) -> None:
+        
+        sbas_data = self.spec.get_stack(add_dem=True)
+    
+        log.info(f"Process start: PS")
+        sbas_data.compute_ps()
+        log.info(f"Process end: PS")
+        
+        log.info('Cleaning')
+        sbas_data = None
+
 
     def multilook(self) -> None:
         # Computes look vectors: [longitude, latitude, elevation, look_E, look_N, look_U]
@@ -136,18 +152,6 @@ class SbasProcessor:
         log.info(f"Process start: MULTILOOK")
         sbas_data.compute_satellite_look_vector()
         log.info(f"Process end: MULTILOOK")
-        
-        log.info('Cleaning')
-        sbas_data = None
-
-    
-    def ps(self) -> None:
-        
-        sbas_data = self.spec.get_stack(add_dem=True)
-    
-        log.info(f"Process start: PS")
-        sbas_data.compute_ps()
-        log.info(f"Process end: PS")
         
         log.info('Cleaning')
         sbas_data = None
@@ -215,6 +219,8 @@ class SbasProcessor:
         sbas_intf_path = self.config.sbas_intf_path
         sbas_corr_path = self.config.sbas_corr_path
         sbas_corr_stack_path = self.config.sbas_corr_stack_path
+        sbas_pairs_path = self.config.sbas_pairs_path
+        sbas_pairs_best_path = self.config.sbas_pairs_best_path
 
         log.info(f"Process start: SBAS")
         ds_sbas = sbas_data.open_stack('intf_mlook')
@@ -226,11 +232,18 @@ class SbasProcessor:
         ds_sbas = ds_sbas.where(landmask_sbas)
         intf_sbas = ds_sbas.phase
         corr_sbas = ds_sbas.correlation
+
         # Add correlation
         baseline_pairs = sbas_data.sbas_pairs(days=s_tbl)
-        baseline_pairs['corr'] = corr_sbas.mean(['y', 'x'])
+        log.info('Saving pairs data')
+        self.save_df_data(baseline_pairs, sbas_pairs_path)
+
         # Select best correlated pairs
+        baseline_pairs['corr'] = corr_sbas.mean(['y', 'x'])
         pairs_best = sbas_data.sbas_pairs_covering_correlation(baseline_pairs, count=s_pccc)
+        log.info('Saving pairs data')
+        self.save_df_data(pairs_best, sbas_pairs_best_path)
+        
         intf_sbas = intf_sbas.sel(pair=pairs_best.pair.values)
         corr_sbas = corr_sbas.sel(pair=pairs_best.pair.values)
 

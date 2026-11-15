@@ -33,7 +33,8 @@ class MsgStackBase(tqdm_joblib, IO):
             work_dir: str,
             geojson_path: str,
             projection: dict, 
-            resolution: float = 0.005
+            resolution: float = 0.005,
+            spatial_buffer_meters: int = 40000
         ) -> None:
         super().__init__()
         self.data_df = pd.DataFrame()
@@ -46,13 +47,33 @@ class MsgStackBase(tqdm_joblib, IO):
         self.unpack_data_dir(self.data_dir, skip_if_exists=True)
         self.area_def = self.get_area_def_from_geojson(
             self.geojson_path,
-            spatial_buffer_meters=0,
+            spatial_buffer_meters=spatial_buffer_meters,
             resolution=self.resolution,
             projection=projection
         )
 
     def __repr__(self):
         return 'Object %s %d items\n%r' % (self.__class__.__name__, len(self.data_df), self.data_df)
+
+    def process_path(self, method_name: str = None, dataset: str = None, row_index: str = None):
+        """Build a process directory following the {ClassName}.{method_name} convention.
+
+        If method_name is omitted, the caller's function name is used automatically.
+        """
+        if method_name is None:
+            import inspect
+            frame = inspect.currentframe()
+            try:
+                method_name = frame.f_back.f_code.co_name if frame is not None and frame.f_back is not None else 'unknown'
+            finally:
+                del frame
+
+        base = Path(self.work_dir) / f"{self.__class__.__name__}.{method_name}"
+        if dataset is not None:
+            base = base / str(dataset)
+        if row_index is not None:
+            base = base / str(row_index)
+        return base
     
     def read_data_dir(self, archive_path):
         """
@@ -473,6 +494,50 @@ class MsgStackBase(tqdm_joblib, IO):
             nodata=no_data
         ) as dst:
             dst.write(values.astype(np.float32), 1)
+
+    def _write_multiband_geotiff(self, output_path: str, values: np.ndarray, area_def: pr.geometry.AreaDefinition,
+                                epsg: int = 4326, no_data: float = -9999.0):
+        """
+        Write multi-band values to GeoTIFF file using rasterio.
+
+        Accepts values in shape (H, W, bands) or (bands, H, W).
+        """
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+
+        # Normalize array shape to (bands, H, W)
+        arr = np.asarray(values)
+        if arr.ndim == 3 and arr.shape[2] <= 4:
+            # assume (H, W, bands)
+            arr = np.transpose(arr, (2, 0, 1))
+        elif arr.ndim == 3 and arr.shape[0] <= 4:
+            # already (bands, H, W)
+            pass
+        else:
+            # fallback: try to interpret as (H, W)
+            if arr.ndim == 2:
+                arr = arr[np.newaxis, ...]
+            else:
+                raise ValueError("Unsupported array shape for multiband GeoTIFF")
+
+        bands, height, width = arr.shape
+
+        minx, miny, maxx, maxy = area_def.area_extent
+        transform = from_bounds(minx, miny, maxx, maxy, width, height)
+
+        with rasterio.open(
+            output_path,
+            'w',
+            driver='GTiff',
+            height=height,
+            width=width,
+            count=bands,
+            dtype=arr.dtype,
+            crs=f'EPSG:{epsg}',
+            transform=transform,
+            nodata=no_data
+        ) as dst:
+            for i in range(bands):
+                dst.write(arr[i].astype(np.float32), i + 1)
 
     def get_area_def_from_geojson(
             self,
