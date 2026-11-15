@@ -2,8 +2,8 @@ from libs.internal.io.json_io import open_json
 
 
 def get_aoi(
-    aois_data: dict,
     aoi_name: str,
+    aois_data: dict = None,
     json_path: str = None,
     aoi_name_key: str = 'aoiName'
 ) -> dict:
