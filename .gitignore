@@ -173,3 +173,6 @@ old_code/
 
 # QGIS
 qgis/
+
+# Test scripts
+test_scripts/
